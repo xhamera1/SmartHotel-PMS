@@ -1,0 +1,82 @@
+# =============================================================================
+# SmartHotel-PMS — root .gitignore (monorepo: Java / Python / Node / infra)
+# NOTE: docs/ is intentionally tracked (thesis description, implementation plan,
+# ADRs, exported API contracts). Do not ignore it.
+# =============================================================================
+
+# --- OS / editor junk -------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- IDEs -------------------------------------------------------------------
+.idea/
+*.iml
+.vscode/
+
+# --- Environment & secrets --------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+
+# --- Logs & temp ------------------------------------------------------------
+*.log
+logs/
+tmp/
+
+# --- Java / Maven (services/pms-core) ---------------------------------------
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+*.war
+hs_err_pid*
+replay_pid*
+
+# --- Python / uv (services/pricing-service) ---------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.eggs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+
+# --- Node / pnpm (frontend, e2e) --------------------------------------------
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+
+# --- Playwright (e2e) -------------------------------------------------------
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/.auth/
+
+# --- k6 (perf) — committed baselines live in perf/baselines/ ----------------
+perf/results/
+
+# --- Generated ML/data artifacts (datasets, models, experiment outputs) -----
+# Committed fixtures belong in tests/fixtures/, committed baselines in-repo.
+artifacts/
+
+# --- Docker -----------------------------------------------------------------
+compose.override.yml
+docker-compose.override.yml
+
+# --- Elasticsearch/Kibana local data (if ever bind-mounted) ------------------
+infra/elk/data/

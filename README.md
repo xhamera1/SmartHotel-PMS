@@ -1,2 +1,62 @@
 # SmartHotel-PMS
-Intelligent Hotel Management System with an ML-based dynamic pricing engine.
+
+**Hotel Management System with an Intelligent Dynamic Pricing Engine**
+Bachelor's thesis project — Patryk Chamera
+
+A hotel property management system (PMS) with a public booking module, backed by a
+machine-learning pricing engine. Prices are recommended by a Random Forest model whose
+features include a demand indicator derived from local events, fetched from a public
+event API and scored for impact by the Google Gemini LLM.
+
+## Architecture at a glance
+
+| Component | Technology | Responsibility |
+|-----------|------------|----------------|
+| `services/pms-core` | Java 21 · Spring Boot · Maven | Reservations, rooms, guests, auth, rate calendar |
+| `services/pricing-service` | Python 3.12 · FastAPI · scikit-learn · uv | ML price serving, training, event ingestion, Gemini scoring |
+| `frontend` | React · TypeScript · Vite | Admin panel + public booking SPA |
+| Database | PostgreSQL 17 (schemas `pms` / `pricing`) | Persistence, DB-level booking integrity |
+| Delivery & QA | Docker Compose · GitHub Actions · JUnit/pytest/Playwright/k6 | CI/CD with embedded quality gates |
+| Observability | Elasticsearch · Kibana · Filebeat | Structured logs, cross-service tracing |
+
+## Documentation
+
+- **[Thesis project description](docs/thesis_project_description.md)** — scope and goals.
+- **[Detailed implementation plan](docs/detailed_implementation_plan.md)** — the single
+  source of truth: architecture decisions (§3), target architecture (§4), QA strategy (§5),
+  and sequential implementation phases 0–14 (§6).
+- `docs/adr/` — Architecture Decision Records.
+
+## Repository layout
+
+```text
+docs/                 thesis docs, ADRs, API contracts, diagrams, QA docs
+services/
+  pms-core/           Java Spring Boot backend (PMS core)
+  pricing-service/    Python FastAPI pricing microservice (ML, events, datagen)
+frontend/             React SPA (admin panel + public booking)
+e2e/                  Playwright end-to-end test suite
+perf/                 k6 performance scenarios and baselines
+infra/                Docker Compose, ELK config, WireMock stubs, seed data
+tools/                cross-platform developer scripts
+.github/workflows/    CI/CD pipelines (GitHub Actions)
+```
+
+## Project status
+
+**Phase 0 — Repository, Toolchain & Governance Bootstrap** (in progress).
+See the [implementation plan](docs/detailed_implementation_plan.md) for phase details
+and exit criteria. Build/run instructions will appear here once the Compose skeleton
+and Taskfile land (Phase 0, steps 2–5).
+
+### Planned prerequisites (Phase 0, step 2)
+
+- Temurin JDK 21, Maven Wrapper
+- Python 3.12 + [uv](https://docs.astral.sh/uv/)
+- Node 22 LTS + pnpm
+- Docker Desktop (WSL2 backend)
+- [Task](https://taskfile.dev) (cross-platform task runner)
+
+## License
+
+[MIT](LICENSE) — © 2026 Patryk Chamera.

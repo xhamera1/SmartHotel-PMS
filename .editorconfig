@@ -1,0 +1,23 @@
+# EditorConfig — https://editorconfig.org
+# Keep in sync with formatter configs added later (Checkstyle, ruff, Prettier).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Web/JS ecosystem and config files use 2-space indentation.
+[*.{js,jsx,ts,tsx,json,yml,yaml,html,css,scss}]
+indent_size = 2
+
+# Markdown: trailing double-space is a hard line break — do not trim.
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows batch scripts keep CRLF (matches .gitattributes).
+[*.{bat,cmd}]
+end_of_line = crlf
