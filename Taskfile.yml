@@ -92,7 +92,13 @@ tasks:
       - task: smoke
 
   seed:
-    desc: Seed development data (placeholder until Phase 2 Flyway seeds / infra/seed)
-    silent: true
+    desc: Apply pms schema + dev seeds to the dev database (interim, until the Phase 2 app runs Flyway itself)
+    deps: [up]
     cmds:
-      - echo "Nothing to seed yet — dev seeds arrive with Phase 2 (Flyway), demo/perf seeds with Phases 11/14 (infra/seed)."
+      # NOTE: applies the Flyway SQL manually (no flyway_schema_history). Before the
+      # first pms-core application start (Phase 2), run `task db-reset` so Flyway
+      # can take ownership of the pms schema from scratch.
+      - docker exec -i smarthotel-postgres psql -q -U postgres -d smarthotel -v ON_ERROR_STOP=1 -f - < services/pms-core/src/main/resources/db/migration/V1__baseline.sql
+      - docker exec -i smarthotel-postgres psql -q -U postgres -d smarthotel -v ON_ERROR_STOP=1 -f - < services/pms-core/src/main/resources/db/seed/V2__seed_reference_data.sql
+      - cmd: echo "pms schema + dev seeds applied (3 room types, 35 rooms, 3 rate plans, 2 staff users)"
+        silent: true

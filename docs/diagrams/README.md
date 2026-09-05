@@ -8,6 +8,7 @@ Current:
   reservations, rate calendar).
 - [`erd-pricing.md`](erd-pricing.md) — ERD of the `pricing` schema (events,
   scores, demand, model registry, prediction log).
+- [`reservation-state-machine.md`](reservation-state-machine.md) — reservation
+  lifecycle: transitions, guards, illegal-transition test matrix.
 
-Planned: container diagram, reservation state machine, key sequence diagrams;
-final exports via mermaid-cli.
+Planned: container diagram, key sequence diagrams; final exports via mermaid-cli.
