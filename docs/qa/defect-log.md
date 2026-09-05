@@ -44,3 +44,26 @@ Severity scale: `Critical` (data loss / security), `High` (feature broken),
   `infra/compose.yml` header and `infra/README.md`; wiped and re-initialized.
 - **Regression guard:** `task smoke` asserts schemas, service users, and
   `btree_gist` exist — a degraded database can no longer pass unnoticed.
+
+## DEF-0003 — Alembic migration silently rolled back when the schema pre-exists
+
+- **Date:** 2026-09-05 · **Phase:** 1 · **Found by:** manual (post-migration verification query)
+- **Severity:** High
+- **Symptom:** `task db-migrate:pricing` (dev database) logged
+  `Running upgrade -> 0001` and exited 0, but the `pricing` schema contained no
+  tables afterwards; every re-run "applied" the same migration again.
+- **Root cause:** `migrations/env.py` runs a pre-flight schema-existence check.
+  That `SELECT` opens SQLAlchemy's implicit (autobegin) transaction. On the
+  pristine-database path (CI, scratch) the code called `commit()` after creating
+  the schema — transaction closed, Alembic then began and committed its own. On
+  the schema-already-exists path (dev, where infra init pre-creates `pricing`)
+  nothing was committed, so Alembic treated the open transaction as
+  caller-managed, skipped its own `COMMIT`, and the entire migration rolled back
+  on connection close — with zero errors logged. Classic
+  works-in-CI-fails-in-dev asymmetry.
+- **Resolution:** `_ensure_schema()` now always commits the pre-flight
+  transaction, whether or not it created the schema.
+- **Regression guard:** the CI python job's migration cycle
+  (`upgrade → upgrade → downgrade base → upgrade` + table assertion) exercises
+  the pre-existing-schema path, because `downgrade base` drops tables but keeps
+  the schema — a regression makes the final assertion fail.

@@ -12,6 +12,8 @@
 # =============================================================================
 version: '3'
 
+dotenv: ['.env']
+
 vars:
   COMPOSE: docker compose --env-file .env -f infra/compose.yml
 
@@ -60,6 +62,7 @@ tasks:
     desc: Run all linters (aggregate — components register in later phases)
     cmds:
       - task: lint:infra
+      - task: lint:python
 
   lint:infra:
     desc: Validate the Docker Compose configuration
@@ -68,6 +71,20 @@ tasks:
       - '{{.COMPOSE}} config --quiet'
       - cmd: echo "compose config OK"
         silent: true
+
+  lint:python:
+    desc: Ruff lint + format check (pricing-service)
+    dir: services/pricing-service
+    cmds:
+      - uv run ruff check .
+      - uv run ruff format --check .
+
+  db-migrate:pricing:
+    desc: Apply pricing-schema Alembic migrations to the dev database
+    deps: [up]
+    dir: services/pricing-service
+    cmds:
+      - uv run alembic upgrade head
 
   test:
     desc: Run all test suites (aggregate — components register in later phases)

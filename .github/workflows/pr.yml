@@ -79,19 +79,61 @@ jobs:
           echo "pms-core not scaffolded yet (Phase 2) — placeholder passes."
 
   python:
-    name: pricing-service (lint)
+    name: pricing-service (lint + migrations)
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/pricing-service
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: pricing_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - name: Lint & format (placeholder until the Phase 4+ scaffold)
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/pricing-service/uv.lock
+      - name: Install dependencies (locked)
+        run: uv sync --locked
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+      - name: Migrations — upgrade, idempotent re-run, downgrade, re-upgrade
+        env:
+          PRICING_DATABASE_URL: postgresql+psycopg://postgres:ci@localhost:5432/pricing_ci
         run: |
-          if [ -f services/pricing-service/pyproject.toml ]; then
-            echo "::error::pricing-service is scaffolded but CI is still a placeholder — wire the real steps (plan Phases 4–6: uv sync, ruff check, ruff format --check, mypy, pytest --cov)."
-            exit 1
-          fi
-          echo "pricing-service not scaffolded yet (Phases 4+) — placeholder passes."
+          uv run alembic upgrade head
+          uv run alembic upgrade head    # must be a no-op, not an error
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+      - name: Assert schema contents
+        env:
+          PRICING_DATABASE_URL: postgresql+psycopg://postgres:ci@localhost:5432/pricing_ci
+        run: |
+          uv run python -c '
+          import os, sqlalchemy as sa
+          engine = sa.create_engine(os.environ["PRICING_DATABASE_URL"])
+          query = sa.text("SELECT table_name FROM information_schema.tables WHERE table_schema = :s")
+          with engine.connect() as conn:
+              tables = {r[0] for r in conn.execute(query, {"s": "pricing"})}
+          expected = {"alembic_version", "events", "event_scores", "daily_demand", "model_registry", "prediction_log"}
+          missing = expected - tables
+          assert not missing, f"missing tables: {missing}"
+          print("pricing schema OK:", sorted(tables))
+          '
 
   frontend:
     name: frontend (lint)

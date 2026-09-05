@@ -14,5 +14,12 @@ via Alembic. Internal-only API (`X-Internal-Api-Key`), consumed by `pms-core`.
 | `events/` | Event providers (Ticketmaster/static), Gemini client, scoring, aggregation | Phase 7 |
 | `datagen/` | Synthetic dataset generator (CLI) | Phase 4 |
 | `tests/` | pytest suite: unit, integration (Testcontainers), contract | Phases 4–7 |
+| `migrations/` | Alembic migrations for the `pricing` schema (**present**) | Phase 1 |
 
-See ADR-0003 for the service-topology rationale.
+Database migrations (URL from `PRICING_DATABASE_URL`, see `.env.example`):
+
+```bash
+uv run alembic upgrade head     # or from the repo root: task db-migrate:pricing
+```
+
+ERD: `docs/diagrams/erd-pricing.md`. See ADR-0003 for the service-topology rationale.

@@ -1,0 +1,33 @@
+[project]
+name = "pricing-service"
+version = "0.1.0"
+description = "SmartHotel dynamic pricing microservice - owns the `pricing` PostgreSQL schema via Alembic; FastAPI app, ML pipeline and event intelligence arrive in later phases"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.16",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12",
+]
+
+# Not an installable package (yet) - uv manages the environment only.
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # bugbear
+    "UP",  # pyupgrade
+    "SIM", # simplify
+]
