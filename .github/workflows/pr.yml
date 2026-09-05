@@ -1,9 +1,8 @@
 # =============================================================================
-# SmartHotel-PMS — PR pipeline (Phase 0.5 bootstrap).
-# Placeholder jobs (java/python/frontend) are self-enforcing: they PASS while a
-# component is not scaffolded, and FAIL loudly the moment its marker file exists
-# without the real lint/test steps being wired in — placeholders cannot rot.
-# "CI OK" is the single required status for branch protection.
+# SmartHotel-PMS — incremental CI (Phase 1 database checks).
+# Java runs Flyway/constraint integration tests; Python runs lint and migrations.
+# The frontend placeholder fails when its scaffold appears without real checks.
+# "CI OK" aggregates all applicable jobs.
 # =============================================================================
 name: CI
 
@@ -38,6 +37,8 @@ jobs:
           filters: |
             java:
               - 'services/pms-core/**'
+              - 'Taskfile.yml'
+              - '.github/workflows/**'
             python:
               - 'services/pricing-service/**'
             frontend:
@@ -53,30 +54,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: No CRLF/mixed line endings committed (see DEF-0001)
+      - name: Enforce declared line endings (see DEF-0001 and DEF-0004)
         run: |
-          bad=$(git ls-files --eol | grep -E 'i/(crlf|mixed)' || true)
+          bad=$(git ls-files --eol | awk '$1 == "i/mixed" || ($1 == "i/crlf" && $0 !~ /attr\/text eol=crlf/)')
           if [ -n "$bad" ]; then
-            echo "::error::Files committed with CRLF/mixed endings (violates .gitattributes):"
+            echo "::error::Unexpected CRLF or mixed line endings (violates .gitattributes):"
             echo "$bad"
             exit 1
           fi
           echo "Line endings OK."
 
   java:
-    name: pms-core (lint)
+    name: pms-core (migrations + constraints)
     needs: changes
-    if: needs.changes.outputs.java == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.java == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/pms-core
     steps:
       - uses: actions/checkout@v4
-      - name: Lint & format (placeholder until the Phase 2 scaffold)
-        run: |
-          if [ -f services/pms-core/pom.xml ]; then
-            echo "::error::pms-core is scaffolded but CI is still a placeholder — wire the real steps (plan Phase 2: ./mvnw -B verify with Checkstyle/SpotBugs + JaCoCo gate)."
-            exit 1
-          fi
-          echo "pms-core not scaffolded yet (Phase 2) — placeholder passes."
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: services/pms-core/pom.xml
+      - name: Flyway migrations and reservation constraints (PostgreSQL 17 / Testcontainers)
+        run: sh ./mvnw -B -ntp verify
+      - name: Publish Java test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pms-core-test-reports
+          path: |
+            services/pms-core/target/failsafe-reports/
+            services/pms-core/target/surefire-reports/
+          if-no-files-found: warn
 
   python:
     name: pricing-service (lint + migrations)

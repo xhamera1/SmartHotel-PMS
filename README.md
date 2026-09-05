@@ -43,8 +43,9 @@ tools/                cross-platform developer scripts
 ## Project status
 
 Foundation complete: repository governance, CI pipeline bootstrap, and containerized
-PostgreSQL with isolated per-service schemas. Application services (backend, pricing,
-frontend) are under active development.
+PostgreSQL with isolated per-service schemas. Phase 1 includes both database
+baselines, domain/API designs, and automated PMS migration/constraint tests against
+PostgreSQL 17. Application services (backend, pricing, frontend) follow in later phases.
 
 ## Getting started
 
@@ -52,7 +53,7 @@ Prerequisites (pinned toolchain):
 
 | Tool | Pinned | Notes |
 |------|--------|-------|
-| JDK | 21 LTS (any OpenJDK build; CI uses Temurin 21) | Maven Wrapper `mvnw` ships with the backend scaffold — no global Maven |
+| JDK | 21 LTS (any OpenJDK build; CI uses Temurin 21) | Maven Wrapper in `services/pms-core` pins Maven 3.9.16 — no global Maven |
 | Python | 3.12 (`.python-version`, managed by [uv](https://docs.astral.sh/uv/)) | system Python is not used |
 | Node | 24 LTS (`.node-version`) + pnpm | |
 | Docker | Docker Desktop with WSL2 backend | |
@@ -64,6 +65,7 @@ task up         # start dev infrastructure (PostgreSQL 17, waits until healthy)
 task smoke      # up + database smoke checks (schemas, users, btree_gist)
 task lint       # all linters (grows with the project)
 task test       # all test suites (grows with the project)
+task test:java  # PMS migrations + reservation constraints in disposable Testcontainers
 task down       # stop infrastructure (data preserved); task db-reset wipes it
 ```
 

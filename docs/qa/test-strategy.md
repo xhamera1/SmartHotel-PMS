@@ -25,7 +25,7 @@ canonical vocabulary used by the defect journal and CI job names.
 | Layer | Scope | Tools | Runs in |
 |-------|-------|-------|---------|
 | Unit (Java) | Domain rules, services with mocked ports | JUnit 5, Mockito, AssertJ | every PR |
-| Persistence slice (Java) | Repositories, constraints, migrations | `@DataJpaTest` + Testcontainers PostgreSQL, Flyway | every PR |
+| Persistence slice (Java) | Repositories, constraints, migrations | Phase 1: JUnit 5 + JDBC + Flyway + Testcontainers PostgreSQL; Phase 2 adds `@DataJpaTest` | every applicable PR/push |
 | Web slice (Java) | Serialization, validation, security rules | `@WebMvcTest`, spring-security-test | every PR |
 | API integration (Java) | Full Spring context, black-box HTTP | `@SpringBootTest(RANDOM_PORT)` + RestAssured + Testcontainers | every PR |
 | Architecture (Java) | Layering rules | ArchUnit | every PR |
@@ -52,7 +52,7 @@ canonical vocabulary used by the defect journal and CI job names.
 | ML metric gate | MAE(multiplier) regression ≤ 10 % vs. baseline |
 | E2E on main | 100 % pass, retries ≤ 1 |
 | k6 thresholds | all SLOs green (plan Phase 11) |
-| Repo hygiene | no committed CRLF (`git ls-files --eol`) |
+| Repo hygiene | no mixed/unexpected CRLF (`git ls-files --eol`); explicit `.gitattributes` CRLF for Windows scripts is allowed |
 
 ## Where strict TDD applies
 
@@ -76,3 +76,4 @@ configuration, and UI layout.
 | Date | Change |
 |------|--------|
 | 2026-09-05 | Baseline adopted (Phase 0). Active gates so far: compose config lint, DB smoke checks, CRLF hygiene. |
+| 2026-09-05 | Phase 1 PMS persistence tests: real Flyway migrations (baseline + opt-in seeds), idempotency, existing infra schema, overlap/adjacency and reservation status constraints. `task test:java` runs Maven Failsafe via the wrapper; `task test` includes it. Java CI runs on service, task or workflow changes and manual dispatch; JUnit reports uploaded. Python CI also runs ruff and the Alembic migration cycle. |

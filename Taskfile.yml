@@ -4,7 +4,7 @@
 # Cross-platform by design: go-task executes commands with its built-in POSIX
 # shell (mvdan/sh), so the same tasks run on Windows, WSL2, macOS, and Linux CI.
 # Aggregate tasks (lint, test, seed) gain component subtasks as phases land
-# (Java in Phase 2, frontend in Phase 3, Python in Phase 4+).
+# (Java database tests in Phase 1, frontend in Phase 3, Python in Phase 4+).
 #
 # Usage:  task            → list tasks
 #         task up         → start dev infrastructure (PostgreSQL, healthy)
@@ -90,6 +90,16 @@ tasks:
     desc: Run all test suites (aggregate — components register in later phases)
     cmds:
       - task: smoke
+      - task: test:java
+
+  test:java:
+    desc: PMS Flyway migrations and reservation constraints (isolated PostgreSQL 17 via Testcontainers)
+    dir: services/pms-core
+    cmds:
+      - cmd: cmd /c mvnw.cmd -B -ntp verify
+        platforms: [windows]
+      - cmd: sh ./mvnw -B -ntp verify
+        platforms: [linux, darwin]
 
   seed:
     desc: Apply pms schema + dev seeds to the dev database (interim, until the Phase 2 app runs Flyway itself)

@@ -67,3 +67,18 @@ Severity scale: `Critical` (data loss / security), `High` (feature broken),
   (`upgrade → upgrade → downgrade base → upgrade` + table assertion) exercises
   the pre-existing-schema path, because `downgrade base` drops tables but keeps
   the schema — a regression makes the final assertion fail.
+
+## DEF-0004 — CI hygiene rejects explicitly required Windows line endings
+
+- **Date:** 2026-09-05 · **Phase:** 1 · **Found by:** review (Maven Wrapper integration)
+- **Severity:** Medium
+- **Symptom:** adding the official `mvnw.cmd` makes the old hygiene predicate reject
+  `i/crlf`, even though `.gitattributes` explicitly requires `eol=crlf` for `.cmd`.
+- **Root cause:** the check inspected the index line ending but ignored the
+  declared attributes. Reproduced against the wrapper's expected `git ls-files
+  --eol` record before changing the predicate.
+- **Resolution:** hygiene now allows CRLF only when the record explicitly declares
+  `attr/text eol=crlf`; mixed endings and unexpected CRLF still fail.
+- **Regression guard:** the tracked wrapper exercises the allowed CRLF path in
+  every CI hygiene run; synthetic records verify rejected unexpected CRLF and
+  mixed endings, including mixed content in a CRLF-declared file.
