@@ -22,6 +22,7 @@ event API and scored for impact by the Google Gemini LLM.
 ## Documentation
 
 - **[Thesis project description](docs/thesis_project_description.md)** — scope and goals.
+- **[Domain glossary](docs/glossary.md)** — the ubiquitous language used in code, schemas, and APIs.
 - `docs/adr/` — Architecture Decision Records (design decisions with rationale).
 
 ## Repository layout
