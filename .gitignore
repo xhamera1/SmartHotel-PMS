@@ -4,6 +4,10 @@
 # ADRs, exported API contracts). Do not ignore it.
 # =============================================================================
 
+# --- Internal working documents (kept local, never published) ---------------
+docs/detailed_implementation_plan.md
+docs/detailed_implementation_plan.local.md
+
 # --- OS / editor junk -------------------------------------------------------
 .DS_Store
 Thumbs.db

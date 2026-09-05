@@ -22,10 +22,7 @@ event API and scored for impact by the Google Gemini LLM.
 ## Documentation
 
 - **[Thesis project description](docs/thesis_project_description.md)** — scope and goals.
-- **[Detailed implementation plan](docs/detailed_implementation_plan.md)** — the single
-  source of truth: architecture decisions (§3), target architecture (§4), QA strategy (§5),
-  and sequential implementation phases 0–14 (§6).
-- `docs/adr/` — Architecture Decision Records.
+- `docs/adr/` — Architecture Decision Records (design decisions with rationale).
 
 ## Repository layout
 
@@ -44,17 +41,17 @@ tools/                cross-platform developer scripts
 
 ## Project status
 
-**Phase 0 — Repository, Toolchain & Governance Bootstrap** (in progress).
-See the [implementation plan](docs/detailed_implementation_plan.md) for phase details
-and exit criteria.
+Foundation complete: repository governance, CI pipeline bootstrap, and containerized
+PostgreSQL with isolated per-service schemas. Application services (backend, pricing,
+frontend) are under active development.
 
 ## Getting started
 
-Prerequisites (pinned toolchain, Phase 0 step 2):
+Prerequisites (pinned toolchain):
 
 | Tool | Pinned | Notes |
 |------|--------|-------|
-| JDK | 21 LTS (any OpenJDK build; CI uses Temurin 21) | Maven Wrapper `mvnw` ships with the Phase 2 scaffold — no global Maven |
+| JDK | 21 LTS (any OpenJDK build; CI uses Temurin 21) | Maven Wrapper `mvnw` ships with the backend scaffold — no global Maven |
 | Python | 3.12 (`.python-version`, managed by [uv](https://docs.astral.sh/uv/)) | system Python is not used |
 | Node | 24 LTS (`.node-version`) + pnpm | |
 | Docker | Docker Desktop with WSL2 backend | |
@@ -64,8 +61,8 @@ Prerequisites (pinned toolchain, Phase 0 step 2):
 task            # list all tasks
 task up         # start dev infrastructure (PostgreSQL 17, waits until healthy)
 task smoke      # up + database smoke checks (schemas, users, btree_gist)
-task lint       # all linters (grows with each phase)
-task test       # all test suites (grows with each phase)
+task lint       # all linters (grows with the project)
+task test       # all test suites (grows with the project)
 task down       # stop infrastructure (data preserved); task db-reset wipes it
 ```
 

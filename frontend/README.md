@@ -6,4 +6,4 @@ Two areas: public booking flow (guest checkout, manage-by-code) and the role-gua
 admin panel (dashboard, rooms, reservations, rate-calendar heatmap with manual
 overrides, events view). API types generated from committed OpenAPI specs.
 
-Scaffolded in **Phase 3** of the [implementation plan](../docs/detailed_implementation_plan.md).
+Not scaffolded yet — arrives with the frontend milestone.

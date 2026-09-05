@@ -1,8 +1,7 @@
 # Summary
 
-<!-- What does this PR do and why? Link the plan phase/step it implements, e.g. "Phase 2, step 5 (availability engine)". -->
+<!-- What does this PR do and why? -->
 
-**Plan reference:**
 **Type:** feat / fix / chore / docs / test / refactor / perf / ci
 
 ## QA checklist (mandatory, including self-review)

@@ -1,7 +1,6 @@
 # CI/CD workflows (GitHub Actions)
 
-Planned pipeline (grows phase by phase, consolidated in Phase 12 of the
-[implementation plan](../../docs/detailed_implementation_plan.md)):
+Planned pipeline (grows incrementally with the project):
 
 | Workflow | Trigger | Contents |
 |----------|---------|----------|

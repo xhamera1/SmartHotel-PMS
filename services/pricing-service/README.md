@@ -15,4 +15,4 @@ via Alembic. Internal-only API (`X-Internal-Api-Key`), consumed by `pms-core`.
 | `datagen/` | Synthetic dataset generator (CLI) | Phase 4 |
 | `tests/` | pytest suite: unit, integration (Testcontainers), contract | Phases 4–7 |
 
-See the [implementation plan](../../docs/detailed_implementation_plan.md), §3.2 and Phases 4–7.
+See ADR-0003 for the service-topology rationale.

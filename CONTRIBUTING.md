@@ -1,9 +1,8 @@
 # Contributing & Workflow
 
-Governance for SmartHotel-PMS (Phase 0, step 3 of the
-[implementation plan](docs/detailed_implementation_plan.md)). Solo-developer
-project, but run with real engineering discipline — the process itself is thesis
-material (RQ4).
+Governance for SmartHotel-PMS. Solo-developer project, but run with real
+engineering discipline — the process itself is part of the thesis's quality
+assurance evaluation.
 
 ## Branching — trunk-based development
 
