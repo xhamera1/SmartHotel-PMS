@@ -6,13 +6,13 @@ assurance evaluation.
 
 ## Branching — trunk-based development
 
-- `main` is protected: no force pushes, no deletions, required CI check **CI OK**.
-  Direct pushes are effectively blocked (a fresh commit cannot have passing checks),
-  so all changes land via pull request.
-- Branches are **short-lived** (target: merged within 1–2 days) and named
-  `feat/…`, `fix/…`, `chore/…`, `docs/…`, `test/…`, `refactor/…`, `ci/…`.
-- Merge strategy: **squash-merge** with a Conventional Commit title — keeps `main`
-  history clean and changelog-scriptable.
+- Solo project: changes land as **direct commits to `main`** — no PR ceremony.
+- `main` is still protected against force pushes and deletions, and history is
+  kept linear.
+- CI runs on **every push to `main`**; a red run on `main` is fixed forward
+  immediately, before starting new work.
+- Short-lived branches (`feat/…`, `fix/…`, `docs/…`, …) with a squash-merged PR
+  remain an *option* for riskier or larger changes, but are never required.
 
 ## Commits — Conventional Commits
 
@@ -31,12 +31,13 @@ docs(adr): ADR-0007 ML target variable
 ci: add schemathesis stage to python job
 ```
 
-## Pull requests
+## Self-review before every push
 
-- Use the PR template (`.github/PULL_REQUEST_TEMPLATE.md`) — the QA checklist is
-  mandatory, including for self-review.
-- Keep PRs small and single-purpose (guideline: < ~400 changed lines, one concern).
-- All CI checks must be green; `task lint` and `task test` must pass locally first.
+The QA checklist in `.github/PULL_REQUEST_TEMPLATE.md` applies to **every change**,
+whether or not a PR is opened:
+
+- Keep commits small and single-purpose (guideline: < ~400 changed lines, one concern).
+- `task lint` and `task test` must pass locally before pushing; CI must be green after.
 - Architectural decisions ship together with their ADR (see `docs/adr/README.md`).
 - Bugs found during work are logged in `docs/qa/defect-log.md` *when found*, and
   fixed test-first.
@@ -57,6 +58,6 @@ Requires the [GitHub CLI](https://cli.github.com/) authenticated as the repo own
 gh api -X PUT repos/xhamera1/SmartHotel-PMS/branches/main/protection --input .github/branch-protection.json
 ```
 
-The policy lives in [`.github/branch-protection.json`](.github/branch-protection.json)
-(required check `CI OK`, no force pushes/deletions, linear history, conversation
-resolution; admins included — relax `enforce_admins` only for genuine emergencies).
+The policy lives in [`.github/branch-protection.json`](.github/branch-protection.json):
+no force pushes or deletions (admins included), linear history, conversation
+resolution on PRs. Direct pushes to `main` are allowed — CI validates every push.
