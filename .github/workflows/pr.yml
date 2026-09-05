@@ -1,0 +1,134 @@
+# =============================================================================
+# SmartHotel-PMS — PR pipeline (Phase 0.5 bootstrap).
+# Placeholder jobs (java/python/frontend) are self-enforcing: they PASS while a
+# component is not scaffolded, and FAIL loudly the moment its marker file exists
+# without the real lint/test steps being wired in — placeholders cannot rot.
+# "CI OK" is the single required status for branch protection.
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      java: ${{ steps.filter.outputs.java }}
+      python: ${{ steps.filter.outputs.python }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            java:
+              - 'services/pms-core/**'
+            python:
+              - 'services/pricing-service/**'
+            frontend:
+              - 'frontend/**'
+            infra:
+              - 'infra/**'
+              - 'Taskfile.yml'
+              - '.env.example'
+              - '.github/workflows/**'
+
+  hygiene:
+    name: Repo hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No CRLF/mixed line endings committed (see DEF-0001)
+        run: |
+          bad=$(git ls-files --eol | grep -E 'i/(crlf|mixed)' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Files committed with CRLF/mixed endings (violates .gitattributes):"
+            echo "$bad"
+            exit 1
+          fi
+          echo "Line endings OK."
+
+  java:
+    name: pms-core (lint)
+    needs: changes
+    if: needs.changes.outputs.java == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint & format (placeholder until the Phase 2 scaffold)
+        run: |
+          if [ -f services/pms-core/pom.xml ]; then
+            echo "::error::pms-core is scaffolded but CI is still a placeholder — wire the real steps (plan Phase 2: ./mvnw -B verify with Checkstyle/SpotBugs + JaCoCo gate)."
+            exit 1
+          fi
+          echo "pms-core not scaffolded yet (Phase 2) — placeholder passes."
+
+  python:
+    name: pricing-service (lint)
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint & format (placeholder until the Phase 4+ scaffold)
+        run: |
+          if [ -f services/pricing-service/pyproject.toml ]; then
+            echo "::error::pricing-service is scaffolded but CI is still a placeholder — wire the real steps (plan Phases 4–6: uv sync, ruff check, ruff format --check, mypy, pytest --cov)."
+            exit 1
+          fi
+          echo "pricing-service not scaffolded yet (Phases 4+) — placeholder passes."
+
+  frontend:
+    name: frontend (lint)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint & format (placeholder until the Phase 3 scaffold)
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "::error::frontend is scaffolded but CI is still a placeholder — wire the real steps (plan Phase 3: pnpm lint, tsc --noEmit, vitest run --coverage, build)."
+            exit 1
+          fi
+          echo "frontend not scaffolded yet (Phase 3) — placeholder passes."
+
+  infra:
+    name: infra (compose lint)
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose --env-file .env -f infra/compose.yml config --quiet
+          echo "Compose config OK."
+
+  ci-ok:
+    name: CI OK
+    needs: [changes, hygiene, java, python, frontend, infra]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any needed job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - name: All applicable checks passed
+        run: echo "CI OK"
