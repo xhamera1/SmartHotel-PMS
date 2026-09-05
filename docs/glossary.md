@@ -52,9 +52,24 @@ The sellable category of rooms (e.g. `STD_DOUBLE` — "Standard Double"): unique
 `min_price`, `max_price`, and `amenities`.
 
 - **All pricing happens at RoomType level**, never per individual Room.
+- The guest-facing product is a **(RoomType, RatePlan)** pair — see RatePlan.
 - Invariant: `min_price <= base_price <= max_price`. Dynamic prices are always
   clamped into `[min_price, max_price]`.
 - Represented by: `pms.room_types`, Java `RoomType`.
+
+### RatePlan
+
+The commercial terms a RoomType is sold under — e.g. `FLEX` (fully refundable),
+`NONREF` (cheaper, non-refundable), `BB` (breakfast included). The sellable
+product is always a (RoomType, RatePlan) pair.
+
+- A RatePlan's nightly price is **derived**, never independently computed:
+  `BAR × price_modifier`, rounded to grosz (e.g. NONREF = BAR × 0.90). Dynamic
+  (ML) pricing operates only on the BAR — rate plans never touch the model
+  (ADR-0007).
+- `refundable` drives guest cancellation rights: guests may self-cancel only
+  refundable reservations; admins can always cancel.
+- Represented by: `pms.rate_plans`, Java `RatePlan`.
 
 ### Guest
 
@@ -69,8 +84,8 @@ email. Deduplicated by email at booking time.
 
 ### Reservation
 
-A booking of exactly one Room for one Guest over one Stay. The domain
-centerpiece. Carries a unique **confirmation code**, party size (`adults`),
+A booking of exactly one Room for one Guest over one Stay, sold under one
+RatePlan. The domain centerpiece. Carries a unique **confirmation code**, party size (`adults`),
 `total_price` with a per-night `price_breakdown` snapshot, an origin channel
 (`WEB` public booking or `ADMIN` panel), and a lifecycle status:
 
@@ -114,10 +129,11 @@ occupancy of a room from day `d` to day `d+1` in hotel-local time. A Stay
 
 ### RateCalendarEntry
 
-The precomputed price for one (RoomType, HotelNight) pair — the *only* place
+The precomputed **BAR** for one (RoomType, HotelNight) pair — the *only* place
 the booking path reads prices from. Written by the nightly pricing refresh (or
 a manual "refresh now" / admin override), never computed synchronously during a
-guest request.
+guest request. RatePlan prices are derived from the BAR at read time via the
+plan's `price_modifier`; the calendar stores only the BAR.
 
 - Fields: price, PriceSource, DemandIndicator, `model_version`, `factors`
   (explanation payload), `computed_at`. Unique per (`room_type_id`, `date`).
@@ -177,6 +193,7 @@ can influence the nights before/after it), a short natural-language
 
 | Term | Meaning |
 |---|---|
+| **BAR (Best Available Rate)** | The dynamically priced nightly price of a RoomType *before* rate-plan modifiers — what the ML model recommends and the rate calendar stores |
 | **StaffUser** | Hotel employee account (`ADMIN` or `RECEPTIONIST`) with login credentials; the only authenticated actors in the system |
 | **ConfirmationCode** | 8-character code from an unambiguous alphabet (no `0/O`, `1/I/l`), unique per Reservation; with the guest's email it authorizes lookup and cancellation |
 | **PriceBreakdown** | JSONB snapshot on a Reservation: per-night price + PriceSource at booking time; the audit trail for "what was charged and why" |
@@ -194,5 +211,5 @@ can influence the nights before/after it), a short natural-language
 | user (for staff) | **StaffUser** |
 | date range, period (of a reservation) | **Stay** |
 | day, date (as the unit being priced/sold) | **HotelNight** |
-| rate, fee, cost (a nightly amount) | **price** (on a RateCalendarEntry) |
+| rate (alone), fee, cost | **BAR** (a room type's nightly price), **RatePlan** (the product dimension), or **price** |
 | demand score / event score (interchangeably) | **DemandIndicator** (per night) vs **EventImpactScore** (per event) |

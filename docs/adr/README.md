@@ -14,14 +14,14 @@ the old one — history is never rewritten.
 | [0004](0004-monorepo.md) | Monorepo | Accepted |
 | [0005](0005-synchronous-rest-no-broker.md) | Synchronous REST between services; no message broker | Accepted |
 | [0006](0006-precomputed-rate-calendar.md) | Precomputed rate calendar with fallback chain | Accepted |
+| [0007](0007-rate-plans-derived-from-bar.md) | Rate plans as static derived rates off the ML-priced BAR | Accepted |
 
-Upcoming (created when their phase lands — see plan Appendix D): 0007 ML target
-variable (Phase 4/5), 0008 event provider abstraction (Phase 7), 0009 Gemini
-integration design (Phase 7), 0010 auth model (Phase 2), 0011 layered
-package-by-feature (Phase 2), 0012 contract-testing approach (Phase 6/8).
+Upcoming (created together with the work they govern): ML target variable, event
+provider abstraction, Gemini integration design, auth model, layered
+package-by-feature structure, contract-testing approach.
 
 ## Creating a new ADR
 
 1. Copy `template.md` to `NNNN-short-title.md` (next number, kebab-case title).
-2. Fill it in; keep it under ~50 lines — link to the plan for details.
-3. Add it to the index above and land it via PR together with the change it governs.
+2. Fill it in; keep it under ~50 lines.
+3. Add it to the index above and commit it together with the change it governs.

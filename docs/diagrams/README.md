@@ -1,5 +1,11 @@
 # Diagrams
 
-Mermaid sources (`.mmd`) and exported PNG/SVG figures for the thesis:
-container diagram, ERD, reservation state machine, key sequence diagrams (Phase 1),
-final exports via mermaid-cli (Phase 14).
+Mermaid sources and exported PNG/SVG figures for the thesis.
+
+Current:
+
+- [`erd-pms.md`](erd-pms.md) — ERD of the `pms` schema (rooms, rate plans,
+  reservations, rate calendar).
+
+Planned: container diagram, `pricing` schema ERD, reservation state machine, key
+sequence diagrams; final exports via mermaid-cli.
