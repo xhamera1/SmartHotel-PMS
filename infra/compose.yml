@@ -1,0 +1,56 @@
+# =============================================================================
+# SmartHotel-PMS — runtime infrastructure (implementation plan §4.4, Phase 0.4)
+#
+# Profiles (plan §4.4):
+#   core          → PostgreSQL only (backend development from the IDE)
+#   app           → full stack (services join in Phases 2–8)
+#   stubs         → WireMock stand-ins for Ticketmaster/Gemini (Phase 7+)
+#   observability → Elasticsearch + Kibana + Filebeat (Phase 10)
+#
+# Usage (from the repository root; Taskfile targets will wrap these later):
+#   docker compose --env-file .env -f infra/compose.yml --profile core up -d --wait
+#   docker compose --env-file .env -f infra/compose.yml --profile core down
+#
+# The postgres init scripts run ONLY on first initialization of an empty data
+# volume. To re-run them from scratch:
+#   docker compose --env-file .env -f infra/compose.yml --profile core down --volumes
+# =============================================================================
+name: smarthotel
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: smarthotel-postgres
+    profiles: ["core", "app"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smarthotel}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      # Consumed by postgres/init/01-init.sh on first run:
+      PMS_DB_PASSWORD: ${PMS_DB_PASSWORD:?PMS_DB_PASSWORD must be set in .env}
+      PRICING_DB_PASSWORD: ${PRICING_DB_PASSWORD:?PRICING_DB_PASSWORD must be set in .env}
+      # The database server deliberately stays on UTC (plan D16): audit
+      # timestamps are timestamptz (UTC), business dates are plain DATE.
+      # Application containers get TZ=Europe/Warsaw instead.
+      TZ: UTC
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # $$ defers expansion to the container shell (container env, not .env).
+      test: ["CMD-SHELL", "pg_isready -q -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # Later phases register services here:
+  #   pms-core (Phase 2) · frontend (Phase 3) · pricing-service (Phase 6)
+  #   wiremock [stubs] (Phase 7) · elasticsearch/kibana/filebeat [observability] (Phase 10)
+
+volumes:
+  pgdata:
+    name: smarthotel-pgdata
