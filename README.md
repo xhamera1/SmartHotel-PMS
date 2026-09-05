@@ -46,16 +46,28 @@ tools/                cross-platform developer scripts
 
 **Phase 0 — Repository, Toolchain & Governance Bootstrap** (in progress).
 See the [implementation plan](docs/detailed_implementation_plan.md) for phase details
-and exit criteria. Build/run instructions will appear here once the Compose skeleton
-and Taskfile land (Phase 0, steps 2–5).
+and exit criteria.
 
-### Planned prerequisites (Phase 0, step 2)
+## Getting started
 
-- Temurin JDK 21, Maven Wrapper
-- Python 3.12 + [uv](https://docs.astral.sh/uv/)
-- Node 22 LTS + pnpm
-- Docker Desktop (WSL2 backend)
-- [Task](https://taskfile.dev) (cross-platform task runner)
+Prerequisites (pinned toolchain, Phase 0 step 2):
+
+| Tool | Pinned | Notes |
+|------|--------|-------|
+| JDK | 21 LTS (any OpenJDK build; CI uses Temurin 21) | Maven Wrapper `mvnw` ships with the Phase 2 scaffold — no global Maven |
+| Python | 3.12 (`.python-version`, managed by [uv](https://docs.astral.sh/uv/)) | system Python is not used |
+| Node | 24 LTS (`.node-version`) + pnpm | |
+| Docker | Docker Desktop with WSL2 backend | |
+| [Task](https://taskfile.dev) | 3.x | cross-platform task runner |
+
+```powershell
+task            # list all tasks
+task up         # start dev infrastructure (PostgreSQL 17, waits until healthy)
+task smoke      # up + database smoke checks (schemas, users, btree_gist)
+task lint       # all linters (grows with each phase)
+task test       # all test suites (grows with each phase)
+task down       # stop infrastructure (data preserved); task db-reset wipes it
+```
 
 ## License
 

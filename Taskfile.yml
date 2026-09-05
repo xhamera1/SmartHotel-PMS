@@ -1,0 +1,81 @@
+# =============================================================================
+# SmartHotel-PMS — task runner (https://taskfile.dev), Phase 0.2
+#
+# Cross-platform by design: go-task executes commands with its built-in POSIX
+# shell (mvdan/sh), so the same tasks run on Windows, WSL2, macOS, and Linux CI.
+# Aggregate tasks (lint, test, seed) gain component subtasks as phases land
+# (Java in Phase 2, frontend in Phase 3, Python in Phase 4+).
+#
+# Usage:  task            → list tasks
+#         task up         → start dev infrastructure (PostgreSQL, healthy)
+#         task smoke      → up + database smoke checks
+# =============================================================================
+version: '3'
+
+vars:
+  COMPOSE: docker compose --env-file .env -f infra/compose.yml
+
+tasks:
+  default:
+    desc: List available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  env:
+    desc: Create .env from .env.example (skipped when .env already exists)
+    status:
+      - test -f .env
+    cmds:
+      - cmd: powershell -NoProfile -Command "Copy-Item .env.example .env"
+        platforms: [windows]
+      - cmd: cp .env.example .env
+        platforms: [linux, darwin]
+
+  up:
+    desc: Start core infrastructure (PostgreSQL) and wait until healthy
+    deps: [env]
+    cmds:
+      - '{{.COMPOSE}} --profile core up -d --wait'
+
+  down:
+    desc: Stop core infrastructure (the data volume is preserved)
+    cmds:
+      - '{{.COMPOSE}} --profile core down'
+
+  db-reset:
+    desc: Destroy the database volume and re-run the first-time init scripts
+    prompt: This wipes ALL local database data. Continue?
+    cmds:
+      - '{{.COMPOSE}} --profile core down --volumes'
+      - task: up
+
+  smoke:
+    desc: Verify database health, schemas, service users, and btree_gist
+    deps: [up]
+    cmds:
+      - docker exec -i smarthotel-postgres psql -U postgres -d smarthotel -v ON_ERROR_STOP=1 -f - < infra/postgres/smoke.sql
+
+  lint:
+    desc: Run all linters (aggregate — components register in later phases)
+    cmds:
+      - task: lint:infra
+
+  lint:infra:
+    desc: Validate the Docker Compose configuration
+    deps: [env]
+    cmds:
+      - '{{.COMPOSE}} config --quiet'
+      - cmd: echo "compose config OK"
+        silent: true
+
+  test:
+    desc: Run all test suites (aggregate — components register in later phases)
+    cmds:
+      - task: smoke
+
+  seed:
+    desc: Seed development data (placeholder until Phase 2 Flyway seeds / infra/seed)
+    silent: true
+    cmds:
+      - echo "Nothing to seed yet — dev seeds arrive with Phase 2 (Flyway), demo/perf seeds with Phases 11/14 (infra/seed)."
