@@ -1,16 +1,20 @@
 package pl.smarthotel.pms.reservations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static pl.smarthotel.pms.auth.AuthTestSupport.adminToken;
+import static pl.smarthotel.pms.auth.AuthTestSupport.bearer;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +59,13 @@ class ReservationApiIT {
 
     @Autowired
     private ReservationService reservationService;
+
+    private String token;
+
+    @BeforeEach
+    void authenticate() {
+        token = adminToken(rest);
+    }
 
     @Test
     void guestCheckoutLookupCancelAndStaffTransitions() {
@@ -146,45 +157,56 @@ class ReservationApiIT {
                 ReservationResponse.class);
         assertThat(cancelled.status()).isEqualTo(ReservationStatus.CANCELLED);
 
-        ReservationResponse walkIn = rest.postForEntity(
+        ReservationResponse walkIn = rest.exchange(
                         "/api/v1/admin/reservations",
-                        Map.of(
-                                "roomTypeCode",
-                                "DLX",
-                                "ratePlanCode",
-                                "BB",
-                                "checkIn",
-                                today.toString(),
-                                "checkOut",
-                                today.plusDays(2).toString(),
-                                "adults",
-                                2,
-                                "guest",
+                        HttpMethod.POST,
+                        bearer(
+                                token,
                                 Map.of(
-                                        "firstName",
-                                        "Adam",
-                                        "lastName",
-                                        "Staff",
-                                        "email",
-                                        "adam.staff@example.com")),
+                                        "roomTypeCode",
+                                        "DLX",
+                                        "ratePlanCode",
+                                        "BB",
+                                        "checkIn",
+                                        today.toString(),
+                                        "checkOut",
+                                        today.plusDays(2).toString(),
+                                        "adults",
+                                        2,
+                                        "guest",
+                                        Map.of(
+                                                "firstName",
+                                                "Adam",
+                                                "lastName",
+                                                "Staff",
+                                                "email",
+                                                "adam.staff@example.com"))),
                         ReservationResponse.class)
                 .getBody();
         assertThat(walkIn.source()).isEqualTo(ReservationSource.ADMIN);
 
-        ReservationResponse checkedIn = rest.postForObject(
-                "/api/v1/admin/reservations/" + walkIn.id() + "/check-in",
-                null,
-                ReservationResponse.class);
+        ReservationResponse checkedIn = rest.exchange(
+                        "/api/v1/admin/reservations/" + walkIn.id() + "/check-in",
+                        HttpMethod.POST,
+                        bearer(token),
+                        ReservationResponse.class)
+                .getBody();
         assertThat(checkedIn.status()).isEqualTo(ReservationStatus.CHECKED_IN);
 
-        ReservationResponse checkedOut = rest.postForObject(
-                "/api/v1/admin/reservations/" + walkIn.id() + "/check-out",
-                null,
-                ReservationResponse.class);
+        ReservationResponse checkedOut = rest.exchange(
+                        "/api/v1/admin/reservations/" + walkIn.id() + "/check-out",
+                        HttpMethod.POST,
+                        bearer(token),
+                        ReservationResponse.class)
+                .getBody();
         assertThat(checkedOut.status()).isEqualTo(ReservationStatus.CHECKED_OUT);
 
-        ProblemDetail illegal = rest.postForObject(
-                "/api/v1/admin/reservations/" + walkIn.id() + "/check-in", null, ProblemDetail.class);
+        ProblemDetail illegal = rest.exchange(
+                        "/api/v1/admin/reservations/" + walkIn.id() + "/check-in",
+                        HttpMethod.POST,
+                        bearer(token),
+                        ProblemDetail.class)
+                .getBody();
         assertThat(illegal.getType().toString()).isEqualTo(ProblemTypes.ILLEGAL_STATE_TRANSITION);
     }
 
@@ -237,23 +259,27 @@ class ReservationApiIT {
         LocalDate in = LocalDate.now(WARSAW).plusDays(60);
         LocalDate out = in.plusDays(2);
 
-        RoomTypeResponse type = rest.postForEntity(
+        RoomTypeResponse type = rest.exchange(
                         "/api/v1/admin/room-types",
-                        new CreateRoomTypeRequest(
-                                "ONE",
-                                "Single Inventory",
-                                null,
-                                (short) 2,
-                                new BigDecimal("200.00"),
-                                new BigDecimal("150.00"),
-                                new BigDecimal("400.00"),
-                                List.of(),
-                                true),
+                        HttpMethod.POST,
+                        bearer(
+                                token,
+                                new CreateRoomTypeRequest(
+                                        "ONE",
+                                        "Single Inventory",
+                                        null,
+                                        (short) 2,
+                                        new BigDecimal("200.00"),
+                                        new BigDecimal("150.00"),
+                                        new BigDecimal("400.00"),
+                                        List.of(),
+                                        true)),
                         RoomTypeResponse.class)
                 .getBody();
-        rest.postForEntity(
+        rest.exchange(
                 "/api/v1/admin/rooms",
-                new CreateRoomRequest("Z01", type.id(), (short) 1, RoomStatus.AVAILABLE, null),
+                HttpMethod.POST,
+                bearer(token, new CreateRoomRequest("Z01", type.id(), (short) 1, RoomStatus.AVAILABLE, null)),
                 RoomResponse.class);
 
         rest.postForEntity(

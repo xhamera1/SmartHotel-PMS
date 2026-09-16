@@ -1,6 +1,8 @@
 package pl.smarthotel.pms.reservations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static pl.smarthotel.pms.auth.AuthTestSupport.adminToken;
+import static pl.smarthotel.pms.auth.AuthTestSupport.bearer;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -68,23 +71,28 @@ class DoubleBookingRaceIT {
         LocalDate checkIn = LocalDate.now(WARSAW).plusDays(90);
         LocalDate checkOut = checkIn.plusDays(2);
 
-        RoomTypeResponse type = rest.postForEntity(
+        String token = adminToken(rest);
+        RoomTypeResponse type = rest.exchange(
                         "/api/v1/admin/room-types",
-                        new CreateRoomTypeRequest(
-                                "RACE",
-                                "Race Single",
-                                null,
-                                (short) 2,
-                                new BigDecimal("200.00"),
-                                new BigDecimal("150.00"),
-                                new BigDecimal("400.00"),
-                                List.of(),
-                                true),
+                        HttpMethod.POST,
+                        bearer(
+                                token,
+                                new CreateRoomTypeRequest(
+                                        "RACE",
+                                        "Race Single",
+                                        null,
+                                        (short) 2,
+                                        new BigDecimal("200.00"),
+                                        new BigDecimal("150.00"),
+                                        new BigDecimal("400.00"),
+                                        List.of(),
+                                        true)),
                         RoomTypeResponse.class)
                 .getBody();
-        rest.postForEntity(
+        rest.exchange(
                 "/api/v1/admin/rooms",
-                new CreateRoomRequest("R01", type.id(), (short) 1, RoomStatus.AVAILABLE, null),
+                HttpMethod.POST,
+                bearer(token, new CreateRoomRequest("R01", type.id(), (short) 1, RoomStatus.AVAILABLE, null)),
                 RoomResponse.class);
 
         CountDownLatch ready = new CountDownLatch(2);

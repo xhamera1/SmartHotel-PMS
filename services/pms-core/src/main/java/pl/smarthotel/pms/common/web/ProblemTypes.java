@@ -11,6 +11,9 @@ public final class ProblemTypes {
     public static final String VALIDATION_ERROR = BASE + "/validation-error";
     public static final String NOT_FOUND = BASE + "/not-found";
     public static final String CONFLICT = BASE + "/conflict";
+    public static final String UNAUTHORIZED = BASE + "/unauthorized";
+    public static final String FORBIDDEN = BASE + "/forbidden";
+    public static final String RATE_LIMITED = BASE + "/rate-limited";
     public static final String ROOM_NO_LONGER_AVAILABLE = BASE + "/room-no-longer-available";
     public static final String RATE_PLAN_NOT_REFUNDABLE = BASE + "/rate-plan-not-refundable";
     public static final String ILLEGAL_STATE_TRANSITION = BASE + "/illegal-state-transition";

@@ -1,16 +1,18 @@
 package pl.smarthotel.pms.rooms;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static pl.smarthotel.pms.auth.AuthTestSupport.adminToken;
+import static pl.smarthotel.pms.auth.AuthTestSupport.bearer;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -46,33 +48,46 @@ class RoomsAdminApiIT {
     @Autowired
     private JdbcTemplate jdbc;
 
+    private String token;
+
+    @BeforeEach
+    void authenticate() {
+        token = adminToken(rest);
+    }
+
     @Test
     void roomTypeCrudValidatesPriceBandAndBlocksDeleteWhenRoomsExist() {
-        var invalid = rest.postForEntity(
+        var invalid = rest.exchange(
                 "/api/v1/admin/room-types",
-                Map.of(
-                        "code", "BAD",
-                        "name", "Bad band",
-                        "capacity", 2,
-                        "basePrice", 100,
-                        "minPrice", 200,
-                        "maxPrice", 300,
-                        "amenities", List.of()),
+                HttpMethod.POST,
+                bearer(
+                        token,
+                        Map.of(
+                                "code", "BAD",
+                                "name", "Bad band",
+                                "capacity", 2,
+                                "basePrice", 100,
+                                "minPrice", 200,
+                                "maxPrice", 300,
+                                "amenities", List.of())),
                 ProblemDetail.class);
         assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(invalid.getBody().getType().toString()).isEqualTo(ProblemTypes.VALIDATION_ERROR);
 
-        var created = rest.postForEntity(
+        var created = rest.exchange(
                 "/api/v1/admin/room-types",
-                Map.of(
-                        "code", "ECO",
-                        "name", "Economy",
-                        "capacity", 2,
-                        "basePrice", 250,
-                        "minPrice", 180,
-                        "maxPrice", 400,
-                        "amenities", List.of("wifi"),
-                        "active", true),
+                HttpMethod.POST,
+                bearer(
+                        token,
+                        Map.of(
+                                "code", "ECO",
+                                "name", "Economy",
+                                "capacity", 2,
+                                "basePrice", 250,
+                                "minPrice", 180,
+                                "maxPrice", 400,
+                                "amenities", List.of("wifi"),
+                                "active", true)),
                 RoomTypeResponse.class);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(created.getBody().code()).isEqualTo("ECO");
@@ -82,18 +97,21 @@ class RoomsAdminApiIT {
         var listed = rest.exchange(
                 "/api/v1/admin/room-types?query=eco&active=true&page=0&size=10",
                 HttpMethod.GET,
-                null,
+                bearer(token),
                 new ParameterizedTypeReference<PageResponse<RoomTypeResponse>>() {});
         assertThat(listed.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(listed.getBody().content()).extracting(RoomTypeResponse::code).contains("ECO");
 
-        var room = rest.postForEntity(
+        var room = rest.exchange(
                 "/api/v1/admin/rooms",
-                Map.of(
-                        "roomNumber", "901",
-                        "roomTypeId", roomTypeId,
-                        "floor", 9,
-                        "status", "AVAILABLE"),
+                HttpMethod.POST,
+                bearer(
+                        token,
+                        Map.of(
+                                "roomNumber", "901",
+                                "roomTypeId", roomTypeId,
+                                "floor", 9,
+                                "status", "AVAILABLE")),
                 RoomResponse.class);
         assertThat(room.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(room.getBody().roomTypeCode()).isEqualTo("ECO");
@@ -101,39 +119,44 @@ class RoomsAdminApiIT {
         var deleteBlocked = rest.exchange(
                 "/api/v1/admin/room-types/" + roomTypeId,
                 HttpMethod.DELETE,
-                null,
+                bearer(token),
                 ProblemDetail.class);
         assertThat(deleteBlocked.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(deleteBlocked.getBody().getDetail()).contains("rooms are still assigned");
 
-        // Remove the room via JDBC so delete of an unused type can succeed.
         jdbc.update("DELETE FROM pms.rooms WHERE id = ?", room.getBody().id());
 
         var deleted = rest.exchange(
-                "/api/v1/admin/room-types/" + roomTypeId, HttpMethod.DELETE, null, Void.class);
+                "/api/v1/admin/room-types/" + roomTypeId, HttpMethod.DELETE, bearer(token), Void.class);
         assertThat(deleted.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     @Test
     void cannotDeleteRoomTypeWithActiveReservation() {
-        var roomType = rest.postForEntity(
+        var roomType = rest.exchange(
                         "/api/v1/admin/room-types",
-                        Map.of(
-                                "code", "ACT",
-                                "name", "Active Test",
-                                "capacity", 2,
-                                "basePrice", 300,
-                                "minPrice", 200,
-                                "maxPrice", 500,
-                                "amenities", List.of()),
+                        HttpMethod.POST,
+                        bearer(
+                                token,
+                                Map.of(
+                                        "code", "ACT",
+                                        "name", "Active Test",
+                                        "capacity", 2,
+                                        "basePrice", 300,
+                                        "minPrice", 200,
+                                        "maxPrice", 500,
+                                        "amenities", List.of())),
                         RoomTypeResponse.class)
                 .getBody();
-        var room = rest.postForEntity(
+        var room = rest.exchange(
                         "/api/v1/admin/rooms",
-                        Map.of(
-                                "roomNumber", "902",
-                                "roomTypeId", roomType.id(),
-                                "status", "AVAILABLE"),
+                        HttpMethod.POST,
+                        bearer(
+                                token,
+                                Map.of(
+                                        "roomNumber", "902",
+                                        "roomTypeId", roomType.id(),
+                                        "status", "AVAILABLE")),
                         RoomResponse.class)
                 .getBody();
 
@@ -162,7 +185,7 @@ class RoomsAdminApiIT {
         var response = rest.exchange(
                 "/api/v1/admin/room-types/" + roomType.id(),
                 HttpMethod.DELETE,
-                HttpEntity.EMPTY,
+                bearer(token),
                 ProblemDetail.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody().getDetail()).contains("active reservations");
@@ -170,26 +193,32 @@ class RoomsAdminApiIT {
 
     @Test
     void roomUpdateAndFilterByStatus() {
-        Long roomTypeId = rest.postForEntity(
+        Long roomTypeId = rest.exchange(
                         "/api/v1/admin/room-types",
-                        Map.of(
-                                "code", "FLT",
-                                "name", "Filter Type",
-                                "capacity", 2,
-                                "basePrice", 220.50,
-                                "minPrice", 150,
-                                "maxPrice", 350,
-                                "amenities", List.of()),
+                        HttpMethod.POST,
+                        bearer(
+                                token,
+                                Map.of(
+                                        "code", "FLT",
+                                        "name", "Filter Type",
+                                        "capacity", 2,
+                                        "basePrice", 220.50,
+                                        "minPrice", 150,
+                                        "maxPrice", 350,
+                                        "amenities", List.of())),
                         RoomTypeResponse.class)
                 .getBody()
                 .id();
 
-        Long roomId = rest.postForEntity(
+        Long roomId = rest.exchange(
                         "/api/v1/admin/rooms",
-                        Map.of(
-                                "roomNumber", "903",
-                                "roomTypeId", roomTypeId,
-                                "status", "AVAILABLE"),
+                        HttpMethod.POST,
+                        bearer(
+                                token,
+                                Map.of(
+                                        "roomNumber", "903",
+                                        "roomTypeId", roomTypeId,
+                                        "status", "AVAILABLE")),
                         RoomResponse.class)
                 .getBody()
                 .id();
@@ -197,12 +226,14 @@ class RoomsAdminApiIT {
         var updated = rest.exchange(
                         "/api/v1/admin/rooms/" + roomId,
                         HttpMethod.PUT,
-                        new HttpEntity<>(Map.of(
-                                "roomNumber", "903",
-                                "roomTypeId", roomTypeId,
-                                "floor", 3,
-                                "status", "OUT_OF_SERVICE",
-                                "notes", "maintenance")),
+                        bearer(
+                                token,
+                                Map.of(
+                                        "roomNumber", "903",
+                                        "roomTypeId", roomTypeId,
+                                        "floor", 3,
+                                        "status", "OUT_OF_SERVICE",
+                                        "notes", "maintenance")),
                         RoomResponse.class)
                 .getBody();
         assertThat(updated.status()).isEqualTo(RoomStatus.OUT_OF_SERVICE);
@@ -211,7 +242,7 @@ class RoomsAdminApiIT {
         var filtered = rest.exchange(
                 "/api/v1/admin/rooms?status=OUT_OF_SERVICE&roomTypeId=" + roomTypeId,
                 HttpMethod.GET,
-                null,
+                bearer(token),
                 new ParameterizedTypeReference<PageResponse<RoomResponse>>() {});
         assertThat(filtered.getBody().content())
                 .extracting(RoomResponse::roomNumber)

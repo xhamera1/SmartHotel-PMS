@@ -17,3 +17,11 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:5173
+  jwt:
+    secret: test-jwt-secret-key-at-least-32-bytes-long!!
+    access-token-ttl: 3600
+    refresh-token-ttl: 86400
+  auth:
+    login-rate-limit:
+      capacity: 100
+      window: PT1M

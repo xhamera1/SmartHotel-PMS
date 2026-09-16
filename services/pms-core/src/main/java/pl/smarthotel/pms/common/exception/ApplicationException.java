@@ -44,6 +44,14 @@ public abstract class ApplicationException extends RuntimeException {
         return new BadRequestException(detail);
     }
 
+    public static UnauthorizedException unauthorized(String detail) {
+        return new UnauthorizedException(detail);
+    }
+
+    public static TooManyRequestsException tooManyRequests(String detail) {
+        return new TooManyRequestsException(detail);
+    }
+
     public static final class NotFoundException extends ApplicationException {
         public NotFoundException(String detail) {
             super(ProblemTypes.NOT_FOUND, HttpStatus.NOT_FOUND, "Not found", detail);
@@ -59,6 +67,18 @@ public abstract class ApplicationException extends RuntimeException {
     public static final class BadRequestException extends ApplicationException {
         public BadRequestException(String detail) {
             super(ProblemTypes.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "Validation failed", detail);
+        }
+    }
+
+    public static final class UnauthorizedException extends ApplicationException {
+        public UnauthorizedException(String detail) {
+            super(ProblemTypes.UNAUTHORIZED, HttpStatus.UNAUTHORIZED, "Unauthorized", detail);
+        }
+    }
+
+    public static final class TooManyRequestsException extends ApplicationException {
+        public TooManyRequestsException(String detail) {
+            super(ProblemTypes.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS, "Too many requests", detail);
         }
     }
 }

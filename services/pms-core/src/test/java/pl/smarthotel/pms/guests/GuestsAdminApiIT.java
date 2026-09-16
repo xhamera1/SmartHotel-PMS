@@ -1,14 +1,16 @@
 package pl.smarthotel.pms.guests;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static pl.smarthotel.pms.auth.AuthTestSupport.adminToken;
+import static pl.smarthotel.pms.auth.AuthTestSupport.bearer;
 
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -50,25 +52,38 @@ class GuestsAdminApiIT {
     @Autowired
     private JdbcTemplate jdbc;
 
+    private String token;
+
+    @BeforeEach
+    void authenticate() {
+        token = adminToken(rest);
+    }
+
     @Test
     void crudSearchAndEmailUniqueness() {
-        var created = rest.postForEntity(
+        var created = rest.exchange(
                 "/api/v1/admin/guests",
-                Map.of(
-                        "firstName", "Jan",
-                        "lastName", "Kowalski",
-                        "email", "jan.kowalski@example.com",
-                        "phone", "+48 600 100 200"),
+                HttpMethod.POST,
+                bearer(
+                        token,
+                        Map.of(
+                                "firstName", "Jan",
+                                "lastName", "Kowalski",
+                                "email", "jan.kowalski@example.com",
+                                "phone", "+48 600 100 200")),
                 GuestResponse.class);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(created.getBody().email()).isEqualTo("jan.kowalski@example.com");
 
-        var duplicate = rest.postForEntity(
+        var duplicate = rest.exchange(
                 "/api/v1/admin/guests",
-                Map.of(
-                        "firstName", "Jan",
-                        "lastName", "Other",
-                        "email", "JAN.KOWALSKI@example.com"),
+                HttpMethod.POST,
+                bearer(
+                        token,
+                        Map.of(
+                                "firstName", "Jan",
+                                "lastName", "Other",
+                                "email", "JAN.KOWALSKI@example.com")),
                 ProblemDetail.class);
         assertThat(duplicate.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(duplicate.getBody().getType().toString()).isEqualTo(ProblemTypes.CONFLICT);
@@ -76,7 +91,7 @@ class GuestsAdminApiIT {
         var search = rest.exchange(
                 "/api/v1/admin/guests?query=kowal&page=0&size=10",
                 HttpMethod.GET,
-                null,
+                bearer(token),
                 new ParameterizedTypeReference<PageResponse<GuestResponse>>() {});
         assertThat(search.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(search.getBody().content())
@@ -87,18 +102,20 @@ class GuestsAdminApiIT {
         var updated = rest.exchange(
                         "/api/v1/admin/guests/" + id,
                         HttpMethod.PUT,
-                        new HttpEntity<>(Map.of(
-                                "firstName", "Janusz",
-                                "lastName", "Kowalski",
-                                "email", "jan.kowalski@example.com",
-                                "phone", "+48 600 100 201")),
+                        bearer(
+                                token,
+                                Map.of(
+                                        "firstName", "Janusz",
+                                        "lastName", "Kowalski",
+                                        "email", "jan.kowalski@example.com",
+                                        "phone", "+48 600 100 201")),
                         GuestResponse.class)
                 .getBody();
         assertThat(updated.firstName()).isEqualTo("Janusz");
         assertThat(updated.phone()).isEqualTo("+48 600 100 201");
 
         var deleted = rest.exchange(
-                "/api/v1/admin/guests/" + id, HttpMethod.DELETE, null, Void.class);
+                "/api/v1/admin/guests/" + id, HttpMethod.DELETE, bearer(token), Void.class);
         assertThat(deleted.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 
@@ -153,7 +170,7 @@ class GuestsAdminApiIT {
         var response = rest.exchange(
                 "/api/v1/admin/guests/" + guestId,
                 HttpMethod.DELETE,
-                null,
+                bearer(token),
                 ProblemDetail.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody().getDetail()).contains("reservations still reference");

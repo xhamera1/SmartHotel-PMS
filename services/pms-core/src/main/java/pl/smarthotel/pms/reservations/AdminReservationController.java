@@ -3,6 +3,7 @@ package pl.smarthotel.pms.reservations;
 import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import pl.smarthotel.pms.common.web.ApiPaths;
 
 @RestController
 @RequestMapping(ApiPaths.ADMIN + "/reservations")
+@PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
 public class AdminReservationController {
 
     private final ReservationService reservationService;

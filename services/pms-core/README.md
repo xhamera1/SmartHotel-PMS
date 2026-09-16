@@ -53,8 +53,26 @@ cd services\pms-core
 
 Then open http://localhost:8080/swagger-ui.html and http://localhost:8080/actuator/health.
 
-Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT` — see
-`.env.example`.
+Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT`,
+`JWT_SECRET` (at least 32 chars), `CORS_ALLOWED_ORIGINS` — see `.env.example`.
+
+## Auth (Phase 2 step 8, ADR-0012)
+
+Staff JWT (HS256) via Spring Security OAuth2 resource-server. Guests stay unauthenticated
+and use confirmation code + email.
+
+| Method | Path | Notes |
+|--------|------|--------|
+| POST | `/api/v1/auth/login` | email + password → access (~60 min) + refresh (~24 h); BCrypt; in-memory bucket4j rate limit |
+| POST | `/api/v1/auth/refresh` | refresh token → new access/refresh pair |
+
+**Roles:** `ADMIN` (room types/rooms + everything), `RECEPTIONIST` (guests + reservation ops).
+Method security via `@PreAuthorize`. CORS is locked to `app.cors.allowed-origins`.
+
+**Dev seed users** (profile `dev`/`test` only):
+
+- `admin@smarthotel.local` / `admin-dev-password` (`ADMIN`)
+- `reception@smarthotel.local` / `reception-dev-password` (`RECEPTIONIST`)
 
 ## Tests
 
@@ -64,19 +82,20 @@ cd services\pms-core
 ```
 
 - Unit: state machine, pricing, confirmation codes, exclusion-constraint translation, availability
-- API IT: `AvailabilityApiIT`, `ReservationApiIT`, `DoubleBookingRaceIT`, rooms/guests admin ITs
+- API IT: `AuthApiIT`, `AvailabilityApiIT`, `ReservationApiIT`, `DoubleBookingRaceIT`, rooms/guests admin ITs
 
 ## Public & admin API
 
-| Method | Path | Notes |
-|--------|------|--------|
-| GET | `/api/v1/availability?checkIn&checkOut&guests` | Free inventory + BAR + rate-plan totals |
-| POST | `/api/v1/reservations` | Guest checkout → `CONFIRMED`; assigns free room; price snapshot |
-| GET | `/api/v1/reservations/lookup?code&email` | Lookup by confirmation code + email |
-| POST | `/api/v1/reservations/{code}/cancel?email=` | Guest cancel (refundable, before check-in) |
-| POST | `/api/v1/admin/reservations` | Walk-in (`source=ADMIN`) |
-| POST | `/api/v1/admin/reservations/{id}/check-in\|check-out\|cancel` | Staff transitions |
-| GET/POST | `/api/v1/admin/room-types` · `/rooms` · `/guests` | Admin CRUD (see prior steps) |
+| Method | Path | Auth | Notes |
+|--------|------|------|--------|
+| GET | `/api/v1/availability?checkIn&checkOut&guests` | public | Free inventory + BAR + rate-plan totals |
+| POST | `/api/v1/reservations` | public | Guest checkout → `CONFIRMED`; assigns free room; price snapshot |
+| GET | `/api/v1/reservations/lookup?code&email` | public | Lookup by confirmation code + email |
+| POST | `/api/v1/reservations/{code}/cancel?email=` | public | Guest cancel (refundable, before check-in) |
+| POST | `/api/v1/admin/reservations` | JWT | Walk-in (`source=ADMIN`) |
+| POST | `/api/v1/admin/reservations/{id}/check-in\|check-out\|cancel` | JWT | Staff transitions |
+| GET/POST | `/api/v1/admin/room-types` · `/rooms` | JWT `ADMIN` | Room catalogue |
+| GET/POST | `/api/v1/admin/guests` | JWT `ADMIN`\|`RECEPTIONIST` | Guest CRUD |
 
 **Lifecycle:** create → `CONFIRMED`; staff check-in/out; guest cancel (refundable + before
 check-in) or staff cancel; night-audit job (`app.night-audit.cron`, default 00:05 Warsaw)
@@ -86,8 +105,6 @@ collision-checked. `price_breakdown` is snapshotted at booking.
 **Concurrency:** the `no_double_booking` exclusion constraint is the last line of defense.
 Violations become `RoomNoLongerAvailableException` → HTTP 409 `room-no-longer-available`
 (`DoubleBookingRaceIT` asserts exactly one of two parallel bookings succeeds).
-
-Auth is still open until Phase 2 step 8 (JWT).
 
 ERD: `docs/diagrams/erd-pms.md` · state machine: `docs/diagrams/reservation-state-machine.md`
 · API contract: `docs/api/pms-api.md`.

@@ -1,13 +1,17 @@
 package pl.smarthotel.pms.reservations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static pl.smarthotel.pms.auth.AuthTestSupport.adminToken;
+import static pl.smarthotel.pms.auth.AuthTestSupport.bearer;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ProblemDetail;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -47,6 +51,13 @@ class AvailabilityApiIT {
     @Autowired
     private JdbcTemplate jdbc;
 
+    private String token;
+
+    @BeforeEach
+    void authenticate() {
+        token = adminToken(rest);
+    }
+
     @Test
     void shouldRejectInvalidStayWindow() {
         ProblemDetail problem = rest.getForObject(
@@ -58,27 +69,33 @@ class AvailabilityApiIT {
 
     @Test
     void shouldFilterByCapacityExcludeOosAllowBackToBackAndUseCalendarOrBase() {
-        RoomTypeResponse type = rest.postForEntity(
+        RoomTypeResponse type = rest.exchange(
                         "/api/v1/admin/room-types",
-                        new CreateRoomTypeRequest(
-                                "AVT",
-                                "Avail Test",
-                                "TDD fixture",
-                                (short) 2,
-                                new BigDecimal("200.00"),
-                                new BigDecimal("150.00"),
-                                new BigDecimal("400.00"),
-                                java.util.List.of("wifi"),
-                                true),
+                        HttpMethod.POST,
+                        bearer(
+                                token,
+                                new CreateRoomTypeRequest(
+                                        "AVT",
+                                        "Avail Test",
+                                        "TDD fixture",
+                                        (short) 2,
+                                        new BigDecimal("200.00"),
+                                        new BigDecimal("150.00"),
+                                        new BigDecimal("400.00"),
+                                        java.util.List.of("wifi"),
+                                        true)),
                         RoomTypeResponse.class)
                 .getBody();
 
         RoomResponse free = createRoom(type.id(), "A01", RoomStatus.AVAILABLE);
         RoomResponse booked = createRoom(type.id(), "A02", RoomStatus.AVAILABLE);
         RoomResponse oos = createRoom(type.id(), "A03", RoomStatus.AVAILABLE);
-        rest.put(
+        rest.exchange(
                 "/api/v1/admin/rooms/" + oos.id(),
-                new UpdateRoomRequest("A03", type.id(), (short) 1, RoomStatus.OUT_OF_SERVICE, "paint"),
+                HttpMethod.PUT,
+                bearer(
+                        token,
+                        new UpdateRoomRequest("A03", type.id(), (short) 1, RoomStatus.OUT_OF_SERVICE, "paint")),
                 RoomResponse.class);
 
         // Party of 3 cannot use capacity-2 type
@@ -176,9 +193,10 @@ class AvailabilityApiIT {
     }
 
     private RoomResponse createRoom(Long roomTypeId, String number, RoomStatus status) {
-        return rest.postForEntity(
+        return rest.exchange(
                         "/api/v1/admin/rooms",
-                        new CreateRoomRequest(number, roomTypeId, (short) 1, status, null),
+                        HttpMethod.POST,
+                        bearer(token, new CreateRoomRequest(number, roomTypeId, (short) 1, status, null)),
                         RoomResponse.class)
                 .getBody();
     }

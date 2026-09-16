@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,6 +32,17 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create(ex.getProblemType()));
         enrich(problem, request);
         return ResponseEntity.status(ex.getStatus()).body(problem);
+    }
+
+    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    ResponseEntity<ProblemDetail> handleAccessDenied(
+            RuntimeException ex, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN, "Insufficient permissions");
+        problem.setTitle("Forbidden");
+        problem.setType(URI.create(ProblemTypes.FORBIDDEN));
+        enrich(problem, request);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

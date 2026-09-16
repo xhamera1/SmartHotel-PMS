@@ -160,7 +160,8 @@ must explain *why*):
 
 Validation failure (`400`): `type=…/validation-error` with an `errors` array of
 `{field, message}`. Unknown/malformed JWT → `401`; insufficient role → `403`;
-illegal state transition → `409` `…/illegal-state-transition`.
+login rate-limited → `429` `…/rate-limited`; illegal state transition → `409`
+`…/illegal-state-transition`.
 
 ## Contract governance
 
