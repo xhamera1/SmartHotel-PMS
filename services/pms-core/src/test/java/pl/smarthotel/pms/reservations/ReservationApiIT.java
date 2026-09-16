@@ -211,6 +211,53 @@ class ReservationApiIT {
     }
 
     @Test
+    void adminListAndManualNoShow() {
+        LocalDate today = LocalDate.now(WARSAW);
+        LocalDate in = today.plusDays(70);
+        LocalDate out = in.plusDays(1);
+
+        ReservationResponse booking = rest.postForEntity(
+                        "/api/v1/reservations",
+                        Map.of(
+                                "roomTypeCode",
+                                "STD",
+                                "ratePlanCode",
+                                "FLEX",
+                                "checkIn",
+                                in.toString(),
+                                "checkOut",
+                                out.toString(),
+                                "adults",
+                                2,
+                                "guest",
+                                Map.of(
+                                        "firstName",
+                                        "List",
+                                        "lastName",
+                                        "Guest",
+                                        "email",
+                                        "list.guest@example.com")),
+                        ReservationResponse.class)
+                .getBody();
+
+        ResponseEntity<String> listed = rest.exchange(
+                "/api/v1/admin/reservations?status=CONFIRMED&query=list.guest&page=0&size=20",
+                HttpMethod.GET,
+                bearer(token),
+                String.class);
+        assertThat(listed.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(listed.getBody()).contains(booking.confirmationCode()).contains("list.guest@example.com");
+
+        ReservationResponse noShow = rest.exchange(
+                        "/api/v1/admin/reservations/" + booking.id() + "/no-show",
+                        HttpMethod.POST,
+                        bearer(token),
+                        ReservationResponse.class)
+                .getBody();
+        assertThat(noShow.status()).isEqualTo(ReservationStatus.NO_SHOW);
+    }
+
+    @Test
     void nightAuditMarksMissedCheckInsAsNoShow() {
         LocalDate today = LocalDate.now(WARSAW);
         LocalDate missedCheckIn = today.minusDays(3);

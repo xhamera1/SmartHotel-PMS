@@ -1,8 +1,6 @@
 # =============================================================================
-# SmartHotel-PMS — incremental CI (Phase 1 database checks).
-# Java runs Flyway/constraint integration tests; Python runs lint and migrations.
-# The frontend placeholder fails when its scaffold appears without real checks.
-# "CI OK" aggregates all applicable jobs.
+# SmartHotel-PMS — incremental CI (Phase 2: backend-java gates + earlier jobs).
+# Java: mvn verify (unit + IT + Checkstyle + SpotBugs + JaCoCo ≥80% on services).
 # =============================================================================
 name: CI
 
@@ -65,11 +63,11 @@ jobs:
           echo "Line endings OK."
 
   java:
-    name: pms-core (migrations + constraints)
+    name: backend-java (pms-core)
     needs: changes
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.java == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: services/pms-core
@@ -81,7 +79,7 @@ jobs:
           java-version: '21'
           cache: maven
           cache-dependency-path: services/pms-core/pom.xml
-      - name: Flyway migrations and reservation constraints (PostgreSQL 17 / Testcontainers)
+      - name: Unit + IT + Checkstyle + SpotBugs + JaCoCo gate
         run: sh ./mvnw -B -ntp verify
       - name: Publish Java test reports
         if: always()
@@ -91,6 +89,13 @@ jobs:
           path: |
             services/pms-core/target/failsafe-reports/
             services/pms-core/target/surefire-reports/
+          if-no-files-found: warn
+      - name: Publish JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pms-core-jacoco
+          path: services/pms-core/target/site/jacoco/
           if-no-files-found: warn
 
   python:

@@ -39,4 +39,6 @@ public interface RoomRepository extends JpaRepository<RoomEntity, Long> {
                     """,
             nativeQuery = true)
     long countActiveReservations(@Param("roomId") long roomId);
+
+    long countByStatusNot(RoomStatus status);
 }

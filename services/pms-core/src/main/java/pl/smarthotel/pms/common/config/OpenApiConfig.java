@@ -40,7 +40,10 @@ public class OpenApiConfig {
                         new Tag().name("Admin — Room types").description("ADMIN only"),
                         new Tag().name("Admin — Rooms").description("ADMIN only"),
                         new Tag().name("Admin — Guests").description("ADMIN or RECEPTIONIST"),
-                        new Tag().name("Admin — Reservations").description("ADMIN or RECEPTIONIST")))
+                        new Tag().name("Admin — Reservations").description("ADMIN or RECEPTIONIST"),
+                        new Tag().name("Admin — Rate calendar").description("View both roles; MANUAL override ADMIN"),
+                        new Tag().name("Admin — Rate plans").description("ADMIN or RECEPTIONIST"),
+                        new Tag().name("Admin — Dashboard").description("ADMIN or RECEPTIONIST")))
                 .components(new Components()
                         .addSecuritySchemes(
                                 BEARER_JWT,

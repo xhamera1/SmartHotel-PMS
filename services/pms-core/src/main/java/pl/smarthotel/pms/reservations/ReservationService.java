@@ -8,12 +8,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import pl.smarthotel.pms.common.config.ClockConfig;
 import pl.smarthotel.pms.common.exception.ApplicationException;
 import pl.smarthotel.pms.common.exception.RoomNoLongerAvailableException;
+import pl.smarthotel.pms.common.web.PageResponse;
 import pl.smarthotel.pms.common.web.ProblemTypes;
 import pl.smarthotel.pms.guests.GuestEntity;
 import pl.smarthotel.pms.guests.GuestService;
@@ -175,11 +179,34 @@ public class ReservationService {
         return toResponse(reservationRepository.save(reservation));
     }
 
+    public PageResponse<AdminReservationSummary> listAdmin(
+            ReservationStatus status, LocalDate from, LocalDate to, String query, int page, int size) {
+        if (from != null && to != null && !from.isBefore(to)) {
+            throw ApplicationException.badRequest("from must be strictly before to");
+        }
+        String normalizedQuery = StringUtils.hasText(query) ? query.trim() : null;
+        Page<ReservationEntity> result = reservationRepository.searchAdmin(
+                status,
+                from,
+                to,
+                normalizedQuery,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "checkIn", "id")));
+        return PageResponse.from(result.map(ReservationService::toAdminSummary));
+    }
+
     @Transactional
     public ReservationResponse cancelByStaff(long id) {
         ReservationEntity reservation = requireById(id);
         ReservationStateMachine.guard(reservation.getStatus(), ReservationAction.CANCEL_STAFF);
         reservation.setStatus(ReservationStatus.CANCELLED);
+        return toResponse(reservationRepository.save(reservation));
+    }
+
+    @Transactional
+    public ReservationResponse markNoShow(long id) {
+        ReservationEntity reservation = requireById(id);
+        ReservationStateMachine.guard(reservation.getStatus(), ReservationAction.MARK_NO_SHOW);
+        reservation.setStatus(ReservationStatus.NO_SHOW);
         return toResponse(reservationRepository.save(reservation));
     }
 
@@ -242,6 +269,24 @@ public class ReservationService {
                 entity.getTotalPrice(),
                 entity.getCurrency(),
                 entity.getPriceBreakdown(),
+                entity.getSource());
+    }
+
+    static AdminReservationSummary toAdminSummary(ReservationEntity entity) {
+        GuestEntity guest = entity.getGuest();
+        return new AdminReservationSummary(
+                entity.getId(),
+                entity.getConfirmationCode(),
+                entity.getStatus(),
+                entity.getRoom().getRoomType().getCode(),
+                entity.getRoom().getRoomNumber(),
+                guest.getFirstName() + " " + guest.getLastName(),
+                guest.getEmail(),
+                entity.getCheckIn(),
+                entity.getCheckOut(),
+                entity.getAdults(),
+                entity.getTotalPrice(),
+                entity.getCurrency(),
                 entity.getSource());
     }
 }

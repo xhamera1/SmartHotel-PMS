@@ -47,12 +47,13 @@ endpoint changes land here first.
 | `GET/POST /api/v1/admin/rooms` · `GET/PUT /api/v1/admin/rooms/{id}` | Room management incl. `status` (ADMIN) | 2 |
 | `GET /api/v1/admin/rate-plans` | Rate-plan catalog (both roles; managed via seeds for now, ADR-0007) | 2 |
 | `GET /api/v1/admin/guests?query&page&size` | Guest search by name/email (both roles) | 2 |
-| `GET /api/v1/admin/reservations?status&from&to&page&size` | Reservation list/filter (both roles) | 2 |
+| `GET /api/v1/admin/reservations?status&from&to&query&page&size` | Reservation list/filter (both roles) | 2 |
 | `POST /api/v1/admin/reservations` | Walk-in/phone booking (`source=ADMIN`) | 2 |
-| `POST /api/v1/admin/reservations/{id}/check-in` · `/check-out` · `/cancel` | State transitions (both roles; see state machine) | 2 |
+| `POST /api/v1/admin/reservations/{id}/check-in` · `/check-out` · `/cancel` · `/no-show` | State transitions (both roles; see state machine) | 2 |
 | `GET /api/v1/admin/rate-calendar?roomTypeCode&from&to` | Calendar view: BAR + source + demand indicator (both roles) | 2 |
 | `PUT /api/v1/admin/rate-calendar/{roomTypeCode}/{date}` | Manual price override → `source=MANUAL` (ADMIN) | 2 |
 | `DELETE /api/v1/admin/rate-calendar/{roomTypeCode}/{date}` | Remove manual override (ADMIN) | 2 |
+| `GET /api/v1/admin/dashboard/kpis` | Occupancy today, arrivals/departures, MTD revenue (both roles) | 2 |
 | `POST /api/v1/admin/pricing/refresh` | Trigger rate-calendar refresh via pricing service (ADMIN) | 8 |
 | `GET /api/v1/admin/pricing/demand-indicators?from&to` · `/events?from&to` · `/model` | Proxies to the pricing service for the admin UI (both roles) | 8 |
 
