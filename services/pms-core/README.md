@@ -13,7 +13,7 @@ REST client (Resilience4j) — never on the guest booking path.
 |---------|----------------|
 | `pl.smarthotel.pms.common` | Config, ProblemDetail advice, correlation ID, MapStruct, audited entities |
 | `pl.smarthotel.pms.rooms` | Room types and physical rooms |
-| `pl.smarthotel.pms.guests` | Guest records |
+| `pl.smarthotel.pms.guests` | Guest records; email dedup for booking |
 | `pl.smarthotel.pms.reservations` | Availability, booking lifecycle, state machine |
 | `pl.smarthotel.pms.ratecalendar` | BAR calendar reads/overrides (pricing seam) |
 | `pl.smarthotel.pms.auth` | Staff JWT login and roles |
@@ -46,20 +46,19 @@ Hibernate `ddl-auto=validate` — Flyway owns the schema (ADR-0008).
 From the repository root (requires JDK 21, Docker for Postgres):
 
 ```text
-task up
-task run:pms
+docker compose --env-file .env -f infra/compose.yml --profile core up -d --wait
+cd services\pms-core
+.\mvnw.cmd -B -ntp spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
 Then open http://localhost:8080/swagger-ui.html and http://localhost:8080/actuator/health.
 
-If you previously applied SQL via `task seed` without Flyway history, wipe the DB once:
+If you previously applied SQL without Flyway history, wipe the DB once:
 
 ```powershell
 docker compose --env-file .env -f infra/compose.yml --profile core down --volumes
 docker compose --env-file .env -f infra/compose.yml --profile core up -d --wait
 ```
-
-Then start the app again. Flyway will create tables + seeds and write `flyway_schema_history`.
 
 Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT` — see
 `.env.example`.
@@ -67,16 +66,16 @@ Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT
 ## Tests
 
 ```text
-task test:java
+cd services\pms-core
+.\mvnw.cmd -B -ntp verify
 ```
 
 - `PmsMigrationIT` / `ReservationConstraintsIT` — JDBC + Flyway constraint tests.
 - `PmsCoreApplicationIT` — Spring Boot context, Flyway, actuator health on Testcontainers.
 - `RoomsAdminApiIT` — room-type/room admin CRUD, price-band validation, delete conflicts.
+- `GuestsAdminApiIT` — guest CRUD/search, email uniqueness, findOrCreate dedup, delete conflicts.
 
-## Admin API (rooms)
-
-With the app running (`dev` profile):
+## Admin API (rooms & guests)
 
 | Method | Path | Notes |
 |--------|------|--------|
@@ -84,8 +83,10 @@ With the app running (`dev` profile):
 | GET/PUT/DELETE | `/api/v1/admin/room-types/{id}` | DELETE → 409 if active reservations / rooms / rate calendar |
 | GET/POST | `/api/v1/admin/rooms` | filter `?roomTypeId=&status=&page=&size=` |
 | GET/PUT | `/api/v1/admin/rooms/{id}` | status `AVAILABLE` \| `OUT_OF_SERVICE` |
+| GET/POST | `/api/v1/admin/guests` | filter `?query=` (name/email), `page`, `size` |
+| GET/PUT/DELETE | `/api/v1/admin/guests/{id}` | DELETE → 409 if reservations exist |
 
-Auth is still open until Phase 2 step 8 (JWT).
-ERD: `docs/diagrams/erd-pms.md` � state machine: `docs/diagrams/reservation-state-machine.md`
-� API contract: `docs/api/pms-api.md`.
+Booking creation will call `GuestService.findOrCreate` (case-insensitive email dedup). Auth is still open until Phase 2 step 8 (JWT).
 
+ERD: `docs/diagrams/erd-pms.md` · state machine: `docs/diagrams/reservation-state-machine.md`
+· API contract: `docs/api/pms-api.md`.
