@@ -72,6 +72,20 @@ task test:java
 
 - `PmsMigrationIT` / `ReservationConstraintsIT` — JDBC + Flyway constraint tests.
 - `PmsCoreApplicationIT` — Spring Boot context, Flyway, actuator health on Testcontainers.
+- `RoomsAdminApiIT` — room-type/room admin CRUD, price-band validation, delete conflicts.
 
-ERD: `docs/diagrams/erd-pms.md` · state machine: `docs/diagrams/reservation-state-machine.md`
-· API contract: `docs/api/pms-api.md`.
+## Admin API (rooms)
+
+With the app running (`dev` profile):
+
+| Method | Path | Notes |
+|--------|------|--------|
+| GET/POST | `/api/v1/admin/room-types` | filter `?active=&query=&page=&size=` |
+| GET/PUT/DELETE | `/api/v1/admin/room-types/{id}` | DELETE → 409 if active reservations / rooms / rate calendar |
+| GET/POST | `/api/v1/admin/rooms` | filter `?roomTypeId=&status=&page=&size=` |
+| GET/PUT | `/api/v1/admin/rooms/{id}` | status `AVAILABLE` \| `OUT_OF_SERVICE` |
+
+Auth is still open until Phase 2 step 8 (JWT).
+ERD: `docs/diagrams/erd-pms.md` � state machine: `docs/diagrams/reservation-state-machine.md`
+� API contract: `docs/api/pms-api.md`.
+
