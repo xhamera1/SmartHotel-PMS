@@ -63,9 +63,8 @@ cd services\pms-core
 .\mvnw.cmd -B -ntp verify
 ```
 
-- Unit: `ReservationStateMachineTest`, `ReservationPricingTest`, `ConfirmationCodeGeneratorTest`,
-  `ReservationServiceTest`, `AvailabilityServiceTest`, `RateCalendarPriceProviderTest`
-- API IT: `AvailabilityApiIT`, `ReservationApiIT`, rooms/guests admin ITs
+- Unit: state machine, pricing, confirmation codes, exclusion-constraint translation, availability
+- API IT: `AvailabilityApiIT`, `ReservationApiIT`, `DoubleBookingRaceIT`, rooms/guests admin ITs
 
 ## Public & admin API
 
@@ -82,7 +81,11 @@ cd services\pms-core
 **Lifecycle:** create → `CONFIRMED`; staff check-in/out; guest cancel (refundable + before
 check-in) or staff cancel; night-audit job (`app.night-audit.cron`, default 00:05 Warsaw)
 marks missed check-ins as `NO_SHOW`. Confirmation codes: 8-char unambiguous alphabet,
-collision-checked. `price_breakdown` is snapshotted at booking (prices shown = charged).
+collision-checked. `price_breakdown` is snapshotted at booking.
+
+**Concurrency:** the `no_double_booking` exclusion constraint is the last line of defense.
+Violations become `RoomNoLongerAvailableException` → HTTP 409 `room-no-longer-available`
+(`DoubleBookingRaceIT` asserts exactly one of two parallel bookings succeeds).
 
 Auth is still open until Phase 2 step 8 (JWT).
 

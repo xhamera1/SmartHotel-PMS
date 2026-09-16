@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.smarthotel.pms.common.config.ClockConfig;
 import pl.smarthotel.pms.common.exception.ApplicationException;
+import pl.smarthotel.pms.common.exception.RoomNoLongerAvailableException;
 import pl.smarthotel.pms.common.web.ProblemTypes;
 import pl.smarthotel.pms.guests.GuestEntity;
 import pl.smarthotel.pms.guests.GuestService;
@@ -83,7 +84,8 @@ public class ReservationService {
         List<RoomEntity> free = reservationRepository.findFreeRooms(
                 roomType.getId(), request.checkIn(), request.checkOut(), PageRequest.of(0, 1));
         if (free.isEmpty()) {
-            throw roomNoLongerAvailable(roomType.getCode(), request.checkIn(), request.checkOut());
+            throw RoomNoLongerAvailableException.forStay(
+                    roomType.getCode(), request.checkIn(), request.checkOut());
         }
         RoomEntity room = free.getFirst();
 
@@ -111,7 +113,11 @@ public class ReservationService {
         try {
             return toResponse(reservationRepository.saveAndFlush(entity));
         } catch (DataIntegrityViolationException ex) {
-            throw roomNoLongerAvailable(roomType.getCode(), request.checkIn(), request.checkOut());
+            if (ExclusionConstraint.isDoubleBooking(ex)) {
+                throw RoomNoLongerAvailableException.forStay(
+                        roomType.getCode(), request.checkIn(), request.checkOut());
+            }
+            throw ex;
         }
     }
 
@@ -218,14 +224,6 @@ public class ReservationService {
         return reservationRepository
                 .findByIdForUpdate(id)
                 .orElseThrow(() -> ApplicationException.notFound("Reservation not found: " + id));
-    }
-
-    private static ApplicationException.ConflictException roomNoLongerAvailable(
-            String roomTypeCode, LocalDate checkIn, LocalDate checkOut) {
-        return new ApplicationException.ConflictException(
-                ProblemTypes.ROOM_NO_LONGER_AVAILABLE,
-                "Room no longer available",
-                "No " + roomTypeCode + " room is free for " + checkIn + " – " + checkOut + " anymore.");
     }
 
     static ReservationResponse toResponse(ReservationEntity entity) {

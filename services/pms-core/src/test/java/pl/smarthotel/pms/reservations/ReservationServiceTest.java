@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import pl.smarthotel.pms.common.exception.ApplicationException;
+import pl.smarthotel.pms.common.exception.RoomNoLongerAvailableException;
 import pl.smarthotel.pms.common.web.ProblemTypes;
 import pl.smarthotel.pms.guests.GuestEntity;
 import pl.smarthotel.pms.guests.GuestService;
@@ -136,7 +137,7 @@ class ReservationServiceTest {
                                 (short) 2,
                                 new GuestUpsertRequest("Jan", "Kowalski", "jan@example.com", null)),
                         ReservationSource.WEB))
-                .isInstanceOf(ApplicationException.ConflictException.class)
+                .isInstanceOf(RoomNoLongerAvailableException.class)
                 .extracting(ex -> ((ApplicationException) ex).getProblemType())
                 .isEqualTo(ProblemTypes.ROOM_NO_LONGER_AVAILABLE);
     }
