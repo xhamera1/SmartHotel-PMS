@@ -57,6 +57,11 @@ app:
     login-rate-limit:
       capacity: 10
       window: PT1M
+    refresh-cookie:
+      name: pms_refresh
+      path: /api/v1/auth
+      same-site: Strict
+      secure: ${AUTH_COOKIE_SECURE:false}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 

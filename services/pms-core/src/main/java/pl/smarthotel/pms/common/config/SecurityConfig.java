@@ -30,6 +30,7 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import pl.smarthotel.pms.auth.RefreshCookieProperties;
 import pl.smarthotel.pms.common.web.ApiPaths;
 import pl.smarthotel.pms.common.web.CorrelationIds;
 import pl.smarthotel.pms.common.web.ProblemTypes;
@@ -37,7 +38,7 @@ import pl.smarthotel.pms.common.web.ProblemTypes;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties(CorsProperties.class)
+@EnableConfigurationProperties({CorsProperties.class, RefreshCookieProperties.class})
 public class SecurityConfig {
 
     @Bean
@@ -77,6 +78,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, ApiPaths.API_V1 + "/auth/login")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, ApiPaths.API_V1 + "/auth/refresh")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.POST, ApiPaths.API_V1 + "/auth/logout")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.API_V1 + "/availability")
                         .permitAll()

@@ -21,6 +21,7 @@ the old one — history is never rewritten.
 | [0011](0011-gemini-structured-scores-fallback.md) | Gemini structured event scores with heuristic fallback | Accepted |
 | [0012](0012-jwt-staff-auth-guest-checkout.md) | Staff JWT auth; guests book without accounts | Accepted |
 | [0013](0013-package-by-feature.md) | Package-by-feature in pms-core (no full hexagonal) | Accepted |
+| [0014](0014-access-memory-refresh-httponly-cookie.md) | Access token in memory; refresh in httpOnly cookie | Accepted |
 
 Upcoming (created together with the work they govern): event provider abstraction,
 contract-testing approach.

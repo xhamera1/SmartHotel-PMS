@@ -11,3 +11,9 @@ Once the services are scaffolded, CI exports the generated OpenAPI specs
 (`pms-openapi.json`, `pricing-openapi.json`) into this directory and fails when a
 generated spec drifts from the committed copy; the design docs then shrink to
 conventions + rationale.
+
+### Committed machine-readable specs
+
+| File | Source | Consumers |
+|------|--------|-----------|
+| [`pms-openapi.json`](pms-openapi.json) | springdoc `/v3/api-docs` (export via `OpenApiExportIT`) | frontend `openapi-typescript`, later contract tests |

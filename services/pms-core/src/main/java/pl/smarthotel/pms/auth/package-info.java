@@ -1,4 +1,5 @@
 /**
- * Staff authentication — JWT login/refresh, roles, and login rate limiting (Phase 2 step 8, ADR-0012).
+ * Staff authentication — JWT login/refresh cookie, roles, and login rate limiting
+ * (ADR-0012, ADR-0014).
  */
 package pl.smarthotel.pms.auth;

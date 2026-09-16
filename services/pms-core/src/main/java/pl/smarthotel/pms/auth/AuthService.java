@@ -26,7 +26,7 @@ public class AuthService {
         this.jwtTokenService = jwtTokenService;
     }
 
-    public TokenResponse login(LoginRequest request) {
+    public SessionTokens login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -38,13 +38,25 @@ public class AuthService {
         }
 
         StaffUserEntity staff = requireActiveStaff(request.email().trim());
-        return toResponse(staff, jwtTokenService.issue(staff));
+        return issueSession(staff);
     }
 
-    public TokenResponse refresh(RefreshRequest request) {
-        String email = jwtTokenService.subjectFromRefreshToken(request.refreshToken().trim());
+    public SessionTokens refresh(String refreshToken) {
+        String email = jwtTokenService.subjectFromRefreshToken(refreshToken.trim());
         StaffUserEntity staff = requireActiveStaff(email);
-        return toResponse(staff, jwtTokenService.issue(staff));
+        return issueSession(staff);
+    }
+
+    private SessionTokens issueSession(StaffUserEntity staff) {
+        JwtTokenService.IssuedTokens tokens = jwtTokenService.issue(staff);
+        TokenResponse access = new TokenResponse(
+                tokens.accessToken(),
+                "Bearer",
+                tokens.expiresIn(),
+                staff.getEmail(),
+                staff.getFullName(),
+                staff.getRole());
+        return new SessionTokens(access, tokens.refreshToken());
     }
 
     private StaffUserEntity requireActiveStaff(String email) {
@@ -54,14 +66,6 @@ public class AuthService {
                 .orElseThrow(() -> ApplicationException.unauthorized("Invalid email or password"));
     }
 
-    private static TokenResponse toResponse(StaffUserEntity staff, JwtTokenService.IssuedTokens tokens) {
-        return new TokenResponse(
-                tokens.accessToken(),
-                tokens.refreshToken(),
-                "Bearer",
-                tokens.expiresIn(),
-                staff.getEmail(),
-                staff.getFullName(),
-                staff.getRole());
-    }
+    /** Access payload for JSON + refresh JWT for the httpOnly cookie. */
+    public record SessionTokens(TokenResponse access, String refreshToken) {}
 }

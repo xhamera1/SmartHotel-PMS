@@ -1,5 +1,6 @@
 package pl.smarthotel.pms.common.web;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -9,7 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import pl.smarthotel.pms.common.exception.ApplicationException;
 
-/** Test-only controller used by {@link ConventionsWebTest}. */
+/** Test-only controller used by {@link ConventionsWebTest}. Hidden from OpenAPI. */
+@Hidden
 @RestController
 class ConventionsProbeController {
 

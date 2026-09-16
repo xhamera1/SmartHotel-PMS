@@ -63,15 +63,18 @@ Then open:
 Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT`,
 `JWT_SECRET` (at least 32 chars), `CORS_ALLOWED_ORIGINS` — see `.env.example`.
 
-## Auth (ADR-0012)
+## Auth (ADR-0012, ADR-0014)
 
 | Method | Path | Notes |
 |--------|------|--------|
-| POST | `/api/v1/auth/login` | email + password → access (~60 min) + refresh (~24 h); BCrypt; bucket4j rate limit |
-| POST | `/api/v1/auth/refresh` | refresh token → new access/refresh pair |
+| POST | /api/v1/auth/login | email + password → access JWT (~60 min) in body; refresh (~24 h) as httpOnly SameSite=Strict cookie; BCrypt; bucket4j rate limit |
+| POST | /api/v1/auth/refresh | refresh cookie → new access/refresh pair (no body) |
+| POST | /api/v1/auth/logout | clears the refresh cookie |
 
-**Roles:** `ADMIN`, `RECEPTIONIST`. Dev seeds: `admin@smarthotel.local` / `admin-dev-password`,
-`reception@smarthotel.local` / `reception-dev-password`.
+**Roles:** ADMIN, RECEPTIONIST. Dev seeds: dmin@smarthotel.local / dmin-dev-password,
+
+eception@smarthotel.local / 
+eception-dev-password.
 
 ## Tests & quality gates
 

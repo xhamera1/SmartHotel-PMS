@@ -111,6 +111,13 @@ tasks:
       - cmd: sh ./mvnw -B -ntp spring-boot:run -Dspring-boot.run.profiles=dev
         platforms: [linux, darwin]
 
+  run:frontend:
+    desc: Start the React SPA (Vite) against local pms-core
+    dir: frontend
+    cmds:
+      - pnpm install
+      - pnpm dev
+
   seed:
     desc: Apply pms schema + dev seeds to the dev database (interim, until the Phase 2 app runs Flyway itself)
     deps: [up]

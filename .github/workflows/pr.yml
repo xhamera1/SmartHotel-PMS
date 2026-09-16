@@ -156,19 +156,40 @@ jobs:
           '
 
   frontend:
-    name: frontend (lint)
+    name: frontend (lint + typecheck + build)
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - name: Lint & format (placeholder until the Phase 3 scaffold)
-        run: |
-          if [ -f frontend/package.json ]; then
-            echo "::error::frontend is scaffolded but CI is still a placeholder — wire the real steps (plan Phase 3: pnpm lint, tsc --noEmit, vitest run --coverage, build)."
-            exit 1
-          fi
-          echo "frontend not scaffolded yet (Phase 3) — placeholder passes."
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: OpenAPI types drift check
+        run: pnpm check:api
+      - name: ESLint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Production build
+        run: pnpm build
+      - name: Upload dist
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          if-no-files-found: warn
 
   infra:
     name: infra (compose lint)

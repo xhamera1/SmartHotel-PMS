@@ -25,3 +25,8 @@ app:
     login-rate-limit:
       capacity: 100
       window: PT1M
+    refresh-cookie:
+      name: pms_refresh
+      path: /api/v1/auth
+      same-site: Strict
+      secure: false

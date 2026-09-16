@@ -17,7 +17,7 @@ endpoint changes land here first.
 | Errors | RFC 7807 `application/problem+json`; `type` identifies the error class |
 | Pagination | `?page=0&size=20` (cursor-less); response wraps `content` + `page` metadata |
 | Correlation | `X-Request-ID` accepted or generated; always echoed back |
-| Auth (staff) | `Authorization: Bearer <JWT>` — HS256, access ~60 min, refresh ~24 h |
+| Auth (staff) | `Authorization: Bearer <access JWT>` — HS256, access ~60 min; refresh ~24 h in `httpOnly; SameSite=Strict` cookie `pms_refresh` (ADR-0014) |
 | Auth (public) | none; booking access via confirmation code + email pair |
 | Roles | `ADMIN` (full), `RECEPTIONIST` (operational: reservations, guests, calendar view) |
 
@@ -36,8 +36,9 @@ endpoint changes land here first.
 
 | Method & path | Purpose | Phase |
 |---|---|---|
-| `POST /api/v1/auth/login` | email + password → access/refresh tokens | 2 |
-| `POST /api/v1/auth/refresh` | refresh token → new access token | 2 |
+| `POST /api/v1/auth/login` | email + password → access JWT in body + refresh cookie | 2/3 |
+| `POST /api/v1/auth/refresh` | refresh cookie → new access JWT (+ rotated cookie) | 2/3 |
+| `POST /api/v1/auth/logout` | clear refresh cookie | 3 |
 
 ### Admin (JWT; role in parentheses)
 
