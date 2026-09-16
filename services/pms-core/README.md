@@ -11,12 +11,20 @@ REST client (Resilience4j) — never on the guest booking path.
 
 | Package | Responsibility |
 |---------|----------------|
-| `pl.smarthotel.pms.common` | Config, shared web utilities, global exception handling |
+| `pl.smarthotel.pms.common` | Config, ProblemDetail advice, correlation ID, MapStruct, audited entities |
 | `pl.smarthotel.pms.rooms` | Room types and physical rooms |
 | `pl.smarthotel.pms.guests` | Guest records |
 | `pl.smarthotel.pms.reservations` | Availability, booking lifecycle, state machine |
 | `pl.smarthotel.pms.ratecalendar` | BAR calendar reads/overrides (pricing seam) |
 | `pl.smarthotel.pms.auth` | Staff JWT login and roles |
+
+### API conventions (Phase 2 step 2)
+
+- Request/response DTOs are Java **`record`s**; MapStruct maps entities ↔ DTOs (no entity leakage).
+- Bean Validation on request bodies; failures → RFC 7807 `application/problem+json`.
+- `X-Request-ID` accepted or generated, stored in MDC, echoed on every response.
+- JPA auditing (`created_at` / `updated_at`) via `AuditedEntity`; optimistic lock via `VersionedAuditedEntity`.
+- Injectable `Clock` (UTC) and hotel `ZoneId` (`Europe/Warsaw`) — never call `Instant.now()` ad hoc.
 
 Database:
 
@@ -44,8 +52,14 @@ task run:pms
 
 Then open http://localhost:8080/swagger-ui.html and http://localhost:8080/actuator/health.
 
-If you previously applied SQL via `task seed` without Flyway history, run `task db-reset`
-once before the first Spring Boot start.
+If you previously applied SQL via `task seed` without Flyway history, wipe the DB once:
+
+```powershell
+docker compose --env-file .env -f infra/compose.yml --profile core down --volumes
+docker compose --env-file .env -f infra/compose.yml --profile core up -d --wait
+```
+
+Then start the app again. Flyway will create tables + seeds and write `flyway_schema_history`.
 
 Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT` — see
 `.env.example`.

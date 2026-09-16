@@ -8,14 +8,18 @@
 --     calendar, no timezone. Audit timestamps are TIMESTAMPTZ (UTC).
 --   * Money is NUMERIC(10,2), PLN only.
 --   * updated_at is maintained by JPA auditing, not DB triggers.
+--
+-- Schema ownership:
+--   * Dev Compose: infra/postgres/init creates schema `pms` owned by pms_user.
+--     Do NOT CREATE SCHEMA here — pms_user has CONNECT only (no CREATE on DB).
+--   * Testcontainers / CI: Flyway spring.flyway.schemas (or test fixture) creates
+--     `pms` as the DB owner before this script runs.
 -- =============================================================================
 
--- btree_gist enables the equality operator on room_id inside the GiST exclusion
--- constraint below. Trusted extension; pre-created by infra/postgres/init in dev,
--- created here for pristine databases (Testcontainers).
+-- btree_gist: needed for the GiST exclusion constraint. Pre-created by Compose
+-- init as superuser; IF NOT EXISTS is a no-op there. Testcontainers runs as a
+-- privileged test user, so the extension is created on first migrate.
 CREATE EXTENSION IF NOT EXISTS btree_gist;
-
-CREATE SCHEMA IF NOT EXISTS pms;
 
 -- ---------------------------------------------------------------------------
 -- Staff (the only authenticated actors; guests use guest checkout)

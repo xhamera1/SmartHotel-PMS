@@ -58,18 +58,26 @@ Prerequisites (pinned toolchain):
 | Python | 3.12 (`.python-version`, managed by [uv](https://docs.astral.sh/uv/)) | system Python is not used |
 | Node | 24 LTS (`.node-version`) + pnpm | |
 | Docker | Docker Desktop with WSL2 backend | |
-| [Task](https://taskfile.dev) | 3.x | cross-platform task runner |
+| [Task](https://taskfile.dev) | 3.x (optional) | nice shortcuts; if Windows blocks `task.exe`, use the Compose/Maven commands below |
 
 ```powershell
+# --- preferred if Task works ---
 task            # list all tasks
-task up         # start dev infrastructure (PostgreSQL 17, waits until healthy)
-task smoke      # up + database smoke checks (schemas, users, btree_gist)
-task lint       # all linters (grows with the project)
-task test       # all test suites (grows with the project)
-task test:java  # PMS migrations + reservation constraints in disposable Testcontainers
-task run:pms    # start pms-core (dev profile, after task up)
-task down       # stop infrastructure (data preserved); task db-reset wipes it
+task up         # start PostgreSQL 17
+task run:pms    # start pms-core (dev)
+task test:java  # migration + constraint tests
+task down       # stop infra (data kept)
+
+# --- if Windows blocks task.exe ("Zasady kontroli aplikacji...") ---
+docker compose --env-file .env -f infra/compose.yml --profile core up -d --wait
+cd services\pms-core
+.\mvnw.cmd -B -ntp spring-boot:run "-Dspring-boot.run.profiles=dev"
+# health: http://localhost:8080/actuator/health
+# swagger: http://localhost:8080/swagger-ui.html
 ```
+
+To stop Postgres later:  
+`docker compose --env-file .env -f infra/compose.yml --profile core down`
 
 ## License
 

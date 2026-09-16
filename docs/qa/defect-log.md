@@ -82,3 +82,19 @@ Severity scale: `Critical` (data loss / security), `High` (feature broken),
 - **Regression guard:** the tracked wrapper exercises the allowed CRLF path in
   every CI hygiene run; synthetic records verify rejected unexpected CRLF and
   mixed endings, including mixed content in a CRLF-declared file.
+
+## DEF-0005 — Flyway V1 CREATE SCHEMA fails under least-privilege pms_user
+
+- **Date:** 2026-09-16 · **Phase:** 2 · **Found by:** manual (`spring-boot:run` / dev)
+- **Severity:** High
+- **Symptom:** app connected to Compose Postgres as `pms_user`, Flyway started
+  `V1__baseline`, then failed with `ERROR: permission denied for database
+  smarthotel` at the `CREATE SCHEMA IF NOT EXISTS pms` line.
+- **Root cause:** Compose init already creates schema `pms` and grants `pms_user`
+  CONNECT only (no CREATE on the database). PostgreSQL still requires CREATE
+  privilege for `CREATE SCHEMA IF NOT EXISTS`, even when the schema already
+  exists. Testcontainers used a DB-owner user, so the same script passed in CI.
+- **Resolution:** removed `CREATE SCHEMA` from `V1__baseline.sql`. Schema is
+  provided by infra init (dev) or Flyway `schemas=pms` as DB owner (tests).
+- **Regression guard:** `PmsCoreApplicationIT` + migration ITs; local
+  `spring-boot:run` with Compose after a clean volume.

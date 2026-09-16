@@ -3,6 +3,9 @@ spring:
     name: pms-core
   profiles:
     default: dev
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
 
 server:
   port: ${PMS_PORT:8080}
@@ -21,3 +24,11 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+app:
+  hotel:
+    zone: Europe/Warsaw
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [${spring.application.name:},%X{requestId:-}] %logger{36} : %m%n"
