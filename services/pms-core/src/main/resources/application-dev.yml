@@ -1,0 +1,29 @@
+# Local development against Compose PostgreSQL (see repo .env / .env.example).
+# If you previously ran `task seed` without Flyway history, run `task db-reset` once
+# before the first Spring Boot start so migrations and seeds apply cleanly.
+spring:
+  datasource:
+    url: ${PMS_DB_URL:jdbc:postgresql://localhost:5432/smarthotel?currentSchema=pms}
+    username: ${PMS_DB_USER:pms_user}
+    password: ${PMS_DB_PASSWORD:pms-dev-password}
+  flyway:
+    schemas: pms
+    default-schema: pms
+    locations: classpath:db/migration,classpath:db/seed
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: pms
+        jdbc:
+          time_zone: UTC
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+logging:
+  level:
+    org.hibernate.SQL: warn

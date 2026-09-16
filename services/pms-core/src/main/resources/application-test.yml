@@ -1,0 +1,19 @@
+# Used by @SpringBootTest integration tests (Testcontainers datasource via @DynamicPropertySource).
+spring:
+  flyway:
+    schemas: pms
+    default-schema: pms
+    locations: classpath:db/migration,classpath:db/seed
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: pms
+        jdbc:
+          time_zone: UTC
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173

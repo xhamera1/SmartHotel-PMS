@@ -101,6 +101,16 @@ tasks:
       - cmd: sh ./mvnw -B -ntp verify
         platforms: [linux, darwin]
 
+  run:pms:
+    desc: Start pms-core locally (dev profile, Compose PostgreSQL)
+    deps: [up]
+    dir: services/pms-core
+    cmds:
+      - cmd: cmd /c mvnw.cmd -B -ntp spring-boot:run -Dspring-boot.run.profiles=dev
+        platforms: [windows]
+      - cmd: sh ./mvnw -B -ntp spring-boot:run -Dspring-boot.run.profiles=dev
+        platforms: [linux, darwin]
+
   seed:
     desc: Apply pms schema + dev seeds to the dev database (interim, until the Phase 2 app runs Flyway itself)
     deps: [up]

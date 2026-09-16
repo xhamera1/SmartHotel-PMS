@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: pms-core
+  profiles:
+    default: dev
+
+server:
+  port: ${PMS_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

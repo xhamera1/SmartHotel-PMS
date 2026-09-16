@@ -6,10 +6,10 @@ import java.sql.SQLException;
 import org.flywaydb.core.Flyway;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-final class PostgresFixture {
+public final class PostgresFixture {
     private PostgresFixture() {}
 
-    static PostgreSQLContainer postgres() {
+    public static PostgreSQLContainer postgres() {
         return new PostgreSQLContainer("postgres:17")
                 .withDatabaseName("pms_test")
                 .withUsername("pms_test")
@@ -21,7 +21,7 @@ final class PostgresFixture {
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
     }
 
-    static Flyway flyway(PostgreSQLContainer postgres, boolean includeSeeds) {
+    public static Flyway flyway(PostgreSQLContainer postgres, boolean includeSeeds) {
         String[] locations = includeSeeds
                 ? new String[] {"classpath:db/migration", "classpath:db/seed"}
                 : new String[] {"classpath:db/migration"};

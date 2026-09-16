@@ -45,7 +45,8 @@ tools/                cross-platform developer scripts
 Foundation complete: repository governance, CI pipeline bootstrap, and containerized
 PostgreSQL with isolated per-service schemas. Phase 1 includes both database
 baselines, domain/API designs, and automated PMS migration/constraint tests against
-PostgreSQL 17. Application services (backend, pricing, frontend) follow in later phases.
+PostgreSQL 17. **pms-core** has a Spring Boot skeleton (`task run:pms`); feature
+APIs, pricing service, and frontend follow in later phases.
 
 ## Getting started
 
@@ -66,6 +67,7 @@ task smoke      # up + database smoke checks (schemas, users, btree_gist)
 task lint       # all linters (grows with the project)
 task test       # all test suites (grows with the project)
 task test:java  # PMS migrations + reservation constraints in disposable Testcontainers
+task run:pms    # start pms-core (dev profile, after task up)
 task down       # stop infrastructure (data preserved); task db-reset wipes it
 ```
 

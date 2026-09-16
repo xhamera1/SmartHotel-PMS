@@ -1,0 +1,23 @@
+# Production — all connection secrets from the environment (no seeds).
+spring:
+  datasource:
+    url: ${PMS_DB_URL}
+    username: ${PMS_DB_USER}
+    password: ${PMS_DB_PASSWORD}
+  flyway:
+    schemas: pms
+    default-schema: pms
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: pms
+        jdbc:
+          time_zone: UTC
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
