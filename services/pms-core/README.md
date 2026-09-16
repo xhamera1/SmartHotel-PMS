@@ -51,7 +51,14 @@ cd services\pms-core
 .\mvnw.cmd -B -ntp spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
-Then open http://localhost:8080/swagger-ui.html and http://localhost:8080/actuator/health.
+Then open:
+
+- http://localhost:8080/swagger-ui — OpenAPI UI (Authorize with Bearer JWT)
+- http://localhost:8080/v3/api-docs — OpenAPI JSON
+- http://localhost:8080/actuator/health — overall health
+- http://localhost:8080/actuator/health/readiness — DB-ready probe (compose / k6)
+- http://localhost:8080/actuator/health/liveness — process liveness
+- http://localhost:8080/actuator/info — app name/version
 
 Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT`,
 `JWT_SECRET` (at least 32 chars), `CORS_ALLOWED_ORIGINS` — see `.env.example`.
@@ -74,6 +81,11 @@ Method security via `@PreAuthorize`. CORS is locked to `app.cors.allowed-origins
 - `admin@smarthotel.local` / `admin-dev-password` (`ADMIN`)
 - `reception@smarthotel.local` / `reception-dev-password` (`RECEPTIONIST`)
 
+## Ops polish (Phase 2 step 9)
+
+- Error catalog: stable `https://smarthotel/problems/…` types (`ProblemTypes` + `docs/api/pms-api.md`)
+- Actuator: only `health` + `info` exposed; probes enabled for future compose healthchecks and k6
+
 ## Tests
 
 ```text
@@ -82,7 +94,8 @@ cd services\pms-core
 ```
 
 - Unit: state machine, pricing, confirmation codes, exclusion-constraint translation, availability
-- API IT: `AuthApiIT`, `AvailabilityApiIT`, `ReservationApiIT`, `DoubleBookingRaceIT`, rooms/guests admin ITs
+- API IT: `PmsCoreApplicationIT` (actuator/swagger/errors), `AuthApiIT`, `AvailabilityApiIT`,
+  `ReservationApiIT`, `DoubleBookingRaceIT`, rooms/guests admin ITs
 
 ## Public & admin API
 

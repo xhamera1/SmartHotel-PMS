@@ -1,5 +1,6 @@
 package pl.smarthotel.pms.auth;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,6 +11,7 @@ import pl.smarthotel.pms.common.web.ApiPaths;
 
 @RestController
 @RequestMapping(ApiPaths.API_V1 + "/auth")
+@Tag(name = "Auth")
 public class AuthController {
 
     private final AuthService authService;

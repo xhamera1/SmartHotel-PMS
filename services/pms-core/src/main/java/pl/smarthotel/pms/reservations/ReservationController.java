@@ -1,5 +1,6 @@
 package pl.smarthotel.pms.reservations;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import pl.smarthotel.pms.common.web.ApiPaths;
 
 @RestController
 @RequestMapping(ApiPaths.API_V1 + "/reservations")
+@Tag(name = "Reservations")
 public class ReservationController {
 
     private final ReservationService reservationService;

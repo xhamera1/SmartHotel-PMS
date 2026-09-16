@@ -1,5 +1,9 @@
 package pl.smarthotel.pms.guests;
 
+import static pl.smarthotel.pms.common.config.OpenApiConfig.BEARER_JWT;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +23,8 @@ import pl.smarthotel.pms.common.web.PageResponse;
 @RestController
 @RequestMapping(ApiPaths.ADMIN + "/guests")
 @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+@Tag(name = "Admin — Guests")
+@SecurityRequirement(name = BEARER_JWT)
 public class GuestController {
 
     private final GuestService guestService;

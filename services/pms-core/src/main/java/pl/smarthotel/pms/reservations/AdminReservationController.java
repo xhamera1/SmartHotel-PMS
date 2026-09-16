@@ -1,5 +1,9 @@
 package pl.smarthotel.pms.reservations;
 
+import static pl.smarthotel.pms.common.config.OpenApiConfig.BEARER_JWT;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +19,8 @@ import pl.smarthotel.pms.common.web.ApiPaths;
 @RestController
 @RequestMapping(ApiPaths.ADMIN + "/reservations")
 @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+@Tag(name = "Admin — Reservations")
+@SecurityRequirement(name = BEARER_JWT)
 public class AdminReservationController {
 
     private final ReservationService reservationService;

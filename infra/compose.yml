@@ -48,7 +48,9 @@ services:
     restart: unless-stopped
 
   # Later phases register services here:
-  #   pms-core (Phase 2) · frontend (Phase 3) · pricing-service (Phase 6)
+  #   pms-core (Phase 2+) — healthcheck: GET /actuator/health/readiness
+  #     (liveness: /actuator/health/liveness · info: /actuator/info · UI: /swagger-ui)
+  #   frontend (Phase 3) · pricing-service (Phase 6)
   #   wiremock [stubs] (Phase 7) · elasticsearch/kibana/filebeat [observability] (Phase 10)
 
 volumes:

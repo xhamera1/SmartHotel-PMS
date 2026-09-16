@@ -3,6 +3,7 @@ package pl.smarthotel.pms.common.web;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -13,9 +14,12 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import pl.smarthotel.pms.common.exception.ApplicationException;
 
@@ -75,6 +79,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(problem);
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<ProblemDetail> handleMissingParameter(
+            MissingServletRequestParameterException ex, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Missing required parameter: " + ex.getParameterName());
+        problem.setTitle("Validation failed");
+        problem.setType(URI.create(ProblemTypes.VALIDATION_ERROR));
+        problem.setProperty(
+                "errors", List.of(new FieldViolation(ex.getParameterName(), "must not be missing")));
+        enrich(problem, request);
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ProblemDetail> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        String name = ex.getName() != null ? ex.getName() : "parameter";
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Invalid value for parameter: " + name);
+        problem.setTitle("Validation failed");
+        problem.setType(URI.create(ProblemTypes.VALIDATION_ERROR));
+        problem.setProperty("errors", List.of(new FieldViolation(name, "must be a valid value")));
+        enrich(problem, request);
+        return ResponseEntity.badRequest().body(problem);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ProblemDetail> handleUnreadable(
             HttpMessageNotReadableException ex, HttpServletRequest request) {
@@ -84,6 +114,18 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create(ProblemTypes.VALIDATION_ERROR));
         enrich(problem, request);
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ProblemDetail> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                ex.getMessage() != null ? ex.getMessage() : "Method not allowed");
+        problem.setTitle("Method not allowed");
+        problem.setType(URI.create(ProblemTypes.VALIDATION_ERROR));
+        enrich(problem, request);
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(problem);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

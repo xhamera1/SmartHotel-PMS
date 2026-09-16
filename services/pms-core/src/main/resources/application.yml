@@ -18,12 +18,31 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  info:
+    env:
+      enabled: true
 
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
-    path: /swagger-ui.html
+    path: /swagger-ui
+    tags-sorter: alpha
+    operations-sorter: method
+  show-actuator: false
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: SmartHotel PMS Core
+    version: 0.1.0-SNAPSHOT
 
 app:
   hotel:

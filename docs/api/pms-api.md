@@ -131,7 +131,26 @@ Response (`Location: /api/v1/reservations/lookup?code=K7NR4PWM&email=…`):
 }
 ```
 
-### Error contract — RFC 7807 examples
+### Error catalog — RFC 7807
+
+All errors use `Content-Type: application/problem+json` with a stable `type` URI under
+`https://smarthotel/problems/…` (Java source of truth: `ProblemTypes`).
+
+| `type` suffix | HTTP | When |
+|---|---|---|
+| `/validation-error` | 400 (405 for wrong method) | Bean Validation, malformed JSON, missing/invalid query params |
+| `/unauthorized` | 401 | Bad login, missing/invalid/expired JWT, refresh token used as access |
+| `/forbidden` | 403 | Authenticated but role insufficient (`@PreAuthorize`) |
+| `/not-found` | 404 | Unknown resource / unknown route |
+| `/conflict` | 409 | Generic business conflict (e.g. duplicate email or room code) |
+| `/room-no-longer-available` | 409 | Inventory race / exclusion constraint |
+| `/rate-plan-not-refundable` | 409 | Guest cancel blocked by rate plan |
+| `/illegal-state-transition` | 409 | Reservation state-machine rejection |
+| `/rate-limited` | 429 | Login rate limit (bucket4j) |
+| `/internal-error` | 500 | Unexpected failure |
+
+Every problem includes `title`, `status`, `detail`, `instance` (request path), and echoes
+`X-Request-ID` as `requestId` when present. Validation errors may add `errors: [{field, message}]`.
 
 Room taken between availability view and booking (`409`):
 
@@ -158,14 +177,10 @@ must explain *why*):
 }
 ```
 
-Validation failure (`400`): `type=…/validation-error` with an `errors` array of
-`{field, message}`. Unknown/malformed JWT → `401`; insufficient role → `403`;
-login rate-limited → `429` `…/rate-limited`; illegal state transition → `409`
-`…/illegal-state-transition`.
-
 ## Contract governance
 
 - Phase 2 exports `openapi.json` from springdoc in CI and fails on drift vs. the
   committed copy (D19); this document then shrinks to conventions + rationale.
+- Live UI: `/swagger-ui` · machine-readable: `/v3/api-docs`.
 - Contract changes require: update here (or OpenAPI) + consumer test update in
   the same commit.

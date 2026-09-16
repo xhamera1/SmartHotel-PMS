@@ -73,7 +73,8 @@ docker compose --env-file .env -f infra/compose.yml --profile core up -d --wait
 cd services\pms-core
 .\mvnw.cmd -B -ntp spring-boot:run "-Dspring-boot.run.profiles=dev"
 # health: http://localhost:8080/actuator/health
-# swagger: http://localhost:8080/swagger-ui.html
+# readiness: http://localhost:8080/actuator/health/readiness
+# swagger: http://localhost:8080/swagger-ui
 ```
 
 To stop Postgres later:  
