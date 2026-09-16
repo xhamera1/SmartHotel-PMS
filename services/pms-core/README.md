@@ -14,7 +14,7 @@ REST client (Resilience4j) — never on the guest booking path.
 | `pl.smarthotel.pms.common` | Config, ProblemDetail advice, correlation ID, MapStruct, audited entities |
 | `pl.smarthotel.pms.rooms` | Room types and physical rooms |
 | `pl.smarthotel.pms.guests` | Guest records; email dedup for booking |
-| `pl.smarthotel.pms.reservations` | Availability engine, booking lifecycle, state machine |
+| `pl.smarthotel.pms.reservations` | Availability, booking lifecycle, state machine, night audit |
 | `pl.smarthotel.pms.ratecalendar` | BAR calendar + `PriceProvider` seam (ADR-0006) |
 | `pl.smarthotel.pms.auth` | Staff JWT login and roles |
 
@@ -53,13 +53,6 @@ cd services\pms-core
 
 Then open http://localhost:8080/swagger-ui.html and http://localhost:8080/actuator/health.
 
-If you previously applied SQL without Flyway history, wipe the DB once:
-
-```powershell
-docker compose --env-file .env -f infra/compose.yml --profile core down --volumes
-docker compose --env-file .env -f infra/compose.yml --profile core up -d --wait
-```
-
 Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT` — see
 `.env.example`.
 
@@ -70,28 +63,26 @@ cd services\pms-core
 .\mvnw.cmd -B -ntp verify
 ```
 
-- `PmsMigrationIT` / `ReservationConstraintsIT` — JDBC + Flyway constraint tests.
-- `PmsCoreApplicationIT` — Spring Boot context, Flyway, actuator health on Testcontainers.
-- `RoomsAdminApiIT` / `GuestsAdminApiIT` — admin CRUD integration tests.
-- `AvailabilityServiceTest` / `RateCalendarPriceProviderTest` — availability engine (TDD unit).
-- `AvailabilityApiIT` — capacity / OOS / overlap / back-to-back / BASE fallback.
+- Unit: `ReservationStateMachineTest`, `ReservationPricingTest`, `ConfirmationCodeGeneratorTest`,
+  `ReservationServiceTest`, `AvailabilityServiceTest`, `RateCalendarPriceProviderTest`
+- API IT: `AvailabilityApiIT`, `ReservationApiIT`, rooms/guests admin ITs
 
 ## Public & admin API
 
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/api/v1/availability?checkIn&checkOut&guests` | Half-open stay; free AVAILABLE rooms; nightly BAR + rate-plan totals |
-| GET/POST | `/api/v1/admin/room-types` | filter `?active=&query=&page=&size=` |
-| GET/PUT/DELETE | `/api/v1/admin/room-types/{id}` | DELETE → 409 if active reservations / rooms / rate calendar |
-| GET/POST | `/api/v1/admin/rooms` | filter `?roomTypeId=&status=&page=&size=` |
-| GET/PUT | `/api/v1/admin/rooms/{id}` | status `AVAILABLE` \| `OUT_OF_SERVICE` |
-| GET/POST | `/api/v1/admin/guests` | filter `?query=` (name/email), `page`, `size` |
-| GET/PUT/DELETE | `/api/v1/admin/guests/{id}` | DELETE → 409 if reservations exist |
+| GET | `/api/v1/availability?checkIn&checkOut&guests` | Free inventory + BAR + rate-plan totals |
+| POST | `/api/v1/reservations` | Guest checkout → `CONFIRMED`; assigns free room; price snapshot |
+| GET | `/api/v1/reservations/lookup?code&email` | Lookup by confirmation code + email |
+| POST | `/api/v1/reservations/{code}/cancel?email=` | Guest cancel (refundable, before check-in) |
+| POST | `/api/v1/admin/reservations` | Walk-in (`source=ADMIN`) |
+| POST | `/api/v1/admin/reservations/{id}/check-in\|check-out\|cancel` | Staff transitions |
+| GET/POST | `/api/v1/admin/room-types` · `/rooms` · `/guests` | Admin CRUD (see prior steps) |
 
-Availability: active room types with `capacity ≥ guests`, `roomsLeft` counting
-`AVAILABLE` rooms with no overlapping `CONFIRMED`/`CHECKED_IN` stay. Nightly `bar`
-from `rate_calendar` (fallback `base_price` with `priceSource=BASE`). Rate-plan
-`totalPrice` = Σ round(BAR × modifier, 2) (ADR-0007).
+**Lifecycle:** create → `CONFIRMED`; staff check-in/out; guest cancel (refundable + before
+check-in) or staff cancel; night-audit job (`app.night-audit.cron`, default 00:05 Warsaw)
+marks missed check-ins as `NO_SHOW`. Confirmation codes: 8-char unambiguous alphabet,
+collision-checked. `price_breakdown` is snapshotted at booking (prices shown = charged).
 
 Auth is still open until Phase 2 step 8 (JWT).
 

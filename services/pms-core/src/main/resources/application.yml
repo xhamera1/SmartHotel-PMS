@@ -28,6 +28,8 @@ springdoc:
 app:
   hotel:
     zone: Europe/Warsaw
+  night-audit:
+    cron: "0 5 0 * * *"
 
 logging:
   pattern:
