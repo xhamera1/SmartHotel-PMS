@@ -43,10 +43,9 @@ tools/                cross-platform developer scripts
 ## Project status
 
 Foundation complete: repository governance, CI pipeline bootstrap, and containerized
-PostgreSQL with isolated per-service schemas. Phase 1 includes both database
-baselines, domain/API designs, and automated PMS migration/constraint tests against
-PostgreSQL 17. **pms-core** has a Spring Boot skeleton (`task run:pms`); feature
-APIs, pricing service, and frontend follow in later phases.
+PostgreSQL with isolated per-service schemas. Phase 1–2 deliver the PMS core API
+(auth, booking, admin). **frontend** has a Vite/React scaffold (`task run:frontend`);
+pricing service and remaining Track B phases follow.
 
 ## Getting started
 
@@ -65,6 +64,7 @@ Prerequisites (pinned toolchain):
 task            # list all tasks
 task up         # start PostgreSQL 17
 task run:pms    # start pms-core (dev)
+task run:frontend # start React SPA (Vite)
 task test:java  # migration + constraint tests
 task down       # stop infra (data kept)
 
@@ -75,6 +75,11 @@ cd services\pms-core
 # health: http://localhost:8080/actuator/health
 # readiness: http://localhost:8080/actuator/health/readiness
 # swagger: http://localhost:8080/swagger-ui
+# in another terminal:
+cd frontend
+pnpm install
+pnpm dev
+# SPA: http://localhost:5173
 ```
 
 To stop Postgres later:  
