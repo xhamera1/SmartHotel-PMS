@@ -14,8 +14,8 @@ REST client (Resilience4j) — never on the guest booking path.
 | `pl.smarthotel.pms.common` | Config, ProblemDetail advice, correlation ID, MapStruct, audited entities |
 | `pl.smarthotel.pms.rooms` | Room types and physical rooms |
 | `pl.smarthotel.pms.guests` | Guest records; email dedup for booking |
-| `pl.smarthotel.pms.reservations` | Availability, booking lifecycle, state machine |
-| `pl.smarthotel.pms.ratecalendar` | BAR calendar reads/overrides (pricing seam) |
+| `pl.smarthotel.pms.reservations` | Availability engine, booking lifecycle, state machine |
+| `pl.smarthotel.pms.ratecalendar` | BAR calendar + `PriceProvider` seam (ADR-0006) |
 | `pl.smarthotel.pms.auth` | Staff JWT login and roles |
 
 ### API conventions (Phase 2 step 2)
@@ -72,13 +72,15 @@ cd services\pms-core
 
 - `PmsMigrationIT` / `ReservationConstraintsIT` — JDBC + Flyway constraint tests.
 - `PmsCoreApplicationIT` — Spring Boot context, Flyway, actuator health on Testcontainers.
-- `RoomsAdminApiIT` — room-type/room admin CRUD, price-band validation, delete conflicts.
-- `GuestsAdminApiIT` — guest CRUD/search, email uniqueness, findOrCreate dedup, delete conflicts.
+- `RoomsAdminApiIT` / `GuestsAdminApiIT` — admin CRUD integration tests.
+- `AvailabilityServiceTest` / `RateCalendarPriceProviderTest` — availability engine (TDD unit).
+- `AvailabilityApiIT` — capacity / OOS / overlap / back-to-back / BASE fallback.
 
-## Admin API (rooms & guests)
+## Public & admin API
 
 | Method | Path | Notes |
 |--------|------|--------|
+| GET | `/api/v1/availability?checkIn&checkOut&guests` | Half-open stay; free AVAILABLE rooms; nightly BAR + rate-plan totals |
 | GET/POST | `/api/v1/admin/room-types` | filter `?active=&query=&page=&size=` |
 | GET/PUT/DELETE | `/api/v1/admin/room-types/{id}` | DELETE → 409 if active reservations / rooms / rate calendar |
 | GET/POST | `/api/v1/admin/rooms` | filter `?roomTypeId=&status=&page=&size=` |
@@ -86,7 +88,12 @@ cd services\pms-core
 | GET/POST | `/api/v1/admin/guests` | filter `?query=` (name/email), `page`, `size` |
 | GET/PUT/DELETE | `/api/v1/admin/guests/{id}` | DELETE → 409 if reservations exist |
 
-Booking creation will call `GuestService.findOrCreate` (case-insensitive email dedup). Auth is still open until Phase 2 step 8 (JWT).
+Availability: active room types with `capacity ≥ guests`, `roomsLeft` counting
+`AVAILABLE` rooms with no overlapping `CONFIRMED`/`CHECKED_IN` stay. Nightly `bar`
+from `rate_calendar` (fallback `base_price` with `priceSource=BASE`). Rate-plan
+`totalPrice` = Σ round(BAR × modifier, 2) (ADR-0007).
+
+Auth is still open until Phase 2 step 8 (JWT).
 
 ERD: `docs/diagrams/erd-pms.md` · state machine: `docs/diagrams/reservation-state-machine.md`
 · API contract: `docs/api/pms-api.md`.

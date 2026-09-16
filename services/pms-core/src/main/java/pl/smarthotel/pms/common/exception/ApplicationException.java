@@ -40,6 +40,10 @@ public abstract class ApplicationException extends RuntimeException {
         return new ConflictException(ProblemTypes.CONFLICT, "Conflict", detail);
     }
 
+    public static BadRequestException badRequest(String detail) {
+        return new BadRequestException(detail);
+    }
+
     public static final class NotFoundException extends ApplicationException {
         public NotFoundException(String detail) {
             super(ProblemTypes.NOT_FOUND, HttpStatus.NOT_FOUND, "Not found", detail);
@@ -49,6 +53,12 @@ public abstract class ApplicationException extends RuntimeException {
     public static final class ConflictException extends ApplicationException {
         public ConflictException(String problemType, String title, String detail) {
             super(problemType, HttpStatus.CONFLICT, title, detail);
+        }
+    }
+
+    public static final class BadRequestException extends ApplicationException {
+        public BadRequestException(String detail) {
+            super(ProblemTypes.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "Validation failed", detail);
         }
     }
 }
