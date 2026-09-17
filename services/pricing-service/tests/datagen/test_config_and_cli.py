@@ -63,7 +63,7 @@ def test_cli_run_writes_parquet_and_metadata(tmp_path: Path) -> None:
     assert meta["config_hash"] == DatagenConfig.from_yaml(CONFIGS / "tiny.yaml").config_hash()
     assert meta["row_counts"]["calendar"] == 14
     assert meta["row_counts"]["events"] >= 1
-    assert meta["row_counts"]["nights"] == 0
-    assert meta["row_counts"]["bookings"] == 0
+    assert meta["row_counts"]["nights"] == 14 * 2  # tiny: 2 room types
+    assert meta["row_counts"]["bookings"] > 0
     assert meta["row_counts"]["snapshots"] == 0
     assert set(meta["files"]) == {"calendar", "events", "nights", "bookings", "snapshots"}
