@@ -10,7 +10,7 @@ global `seed`, and writes parquet tables plus a JSON metadata sidecar under
 |------|---------|--------|
 | 1 | Config + CLI + empty typed parquet + metadata | **done** |
 | 2 | Calendar factors | **done** |
-| 3 | Synthetic event catalog | pending |
+| 3 | Synthetic event catalog | **done** |
 | 4 | Demand & booking simulation | pending |
 | 5 | Optimal-price target | pending |
 | 6 | Training snapshots | pending |
@@ -48,4 +48,6 @@ Or from the repo root: `task datagen`.
 | `snapshots.parquet` | Lead-time training rows (step 6) |
 | `metadata.json` | `config_hash`, `seed`, `row_counts`, file map |
 
-Step 2 fills `calendar.parquet`. Remaining tables stay empty typed frames until later steps.
+Step 2 fills `calendar.parquet`. Step 3 fills `events.parquet` (~60/year, template
+descriptions + `true_uplift` ground truth for Gemini E3). Remaining tables stay empty
+until later steps.
