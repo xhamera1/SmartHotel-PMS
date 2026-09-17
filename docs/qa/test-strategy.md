@@ -49,10 +49,28 @@ canonical vocabulary used by the defect journal and CI job names.
 | Frontend coverage on logic-bearing components/hooks | ≥ 70 % |
 | Lint/format/type-check (all languages) | zero errors |
 | OpenAPI drift | zero uncommitted diff |
-| ML metric gate | MAE(multiplier) regression ≤ 10 % vs. baseline |
+| ML metric gate | multiplier and PLN-price MAE regression ≤ 10 % vs. baseline |
 | E2E on main | 100 % pass, retries ≤ 1 |
 | k6 thresholds | all SLOs green (plan Phase 11) |
 | Repo hygiene | no mixed/unexpected CRLF (`git ls-files --eol`); explicit `.gitattributes` CRLF for Windows scripts is allowed |
+
+## ML offline evaluation protocol
+
+Hyperparameter tuning is restricted to expanding-window folds inside the training
+period. The final six-month holdout is used only after estimator selection. RF and
+the B0 static, B1 manual weekday×season, and B2 linear baselines are evaluated on the
+same holdout rows. Reported metrics are MAE, RMSE, R², and MAPE (%) for both multiplier
+and `base_price × multiplier`, including month, event-night, and room-type segments.
+RF is considered justified for RQ1 only if its overall multiplier and PLN MAE are
+both lower than every baseline. The complete machine-readable result is retained in
+`metrics.json`; figures are generated from the same predictions.
+
+The RQ2 ablation changes only the three event inputs; its two metric files and
+comparison tables are generated in one command. CI independently regenerates the
+seeded default dataset and runs the fixed quick-training protocol from `ml/gate.py`.
+Both primary MAEs are compared with committed `ml/baseline_metrics.json`; a schema
+hash mismatch or regression above 10% fails the job, while the fresh metrics and
+comparison report are uploaded as CI evidence.
 
 ## Where strict TDD applies
 

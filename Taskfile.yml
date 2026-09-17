@@ -114,6 +114,35 @@ tasks:
     cmds:
       - uv run python -m datagen run --config datagen/configs/default.yaml --output ../../artifacts/datasets/default
 
+  ml:train:
+    desc: Tune, evaluate, and persist a versioned Random Forest artifact
+    deps: [datagen]
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m ml.train
+
+  ml:ablation:
+    desc: Run the RQ2 event-feature ablation and generate comparison tables
+    deps: [datagen]
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m ml.ablation
+
+  ml:promote:
+    desc: Atomically promote one registered model version (VERSION=...)
+    dir: services/pricing-service
+    requires:
+      vars: [VERSION]
+    cmds:
+      - uv run python -m ml.registry promote --version "{{.VERSION}}"
+
+  ml:gate:
+    desc: Regenerate data and run the deterministic ML metric regression gate
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m datagen run --config datagen/configs/default.yaml --output ../../tmp/ml-gate-dataset
+      - uv run python -m ml.gate --dataset ../../tmp/ml-gate-dataset/snapshots.parquet --output ../../tmp/ml-gate
+
   datagen:eda:
     desc: Render Phase-4 EDA figures from artifacts/datasets/default
     dir: services/pricing-service

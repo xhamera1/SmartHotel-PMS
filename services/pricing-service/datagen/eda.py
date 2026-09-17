@@ -105,9 +105,7 @@ def plot_seasonal_decomposition(calendar: pd.DataFrame, path: Path) -> Path:
     )
     series = series.interpolate(limit_direction="both")
     period = 7 if len(series) >= 14 else max(2, len(series) // 2)
-    result = seasonal_decompose(
-        series, model="additive", period=period, extrapolate_trend="period"
-    )
+    result = seasonal_decompose(series, model="additive", period=period, extrapolate_trend="period")
     fig = result.plot()
     fig.set_size_inches(10, 8)
     fig.suptitle("Seasonal decomposition of calendar_factor", y=1.02)

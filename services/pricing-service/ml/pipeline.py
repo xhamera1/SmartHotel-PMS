@@ -12,7 +12,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-from ml.features import CATEGORICAL_FEATURES, NUMERIC_FEATURES
+from ml.features import CATEGORICAL_FEATURES, FEATURE_NAMES, NUMERIC_FEATURES
 from ml.splitting import (
     DEFAULT_HOLDOUT_MONTHS,
     ExpandingWindowSplit,
@@ -65,6 +65,8 @@ class TrainingResult:
 
     search: RandomizedSearchCV
     split: TemporalSplit
+    config: TrainingConfig
+    feature_names: tuple[str, ...]
 
     @property
     def best_pipeline(self) -> Pipeline:
@@ -75,21 +77,10 @@ def build_random_forest_pipeline(
     *,
     random_state: int = DEFAULT_RANDOM_STATE,
     n_jobs: int = 1,
+    feature_names: Sequence[str] = FEATURE_NAMES,
 ) -> Pipeline:
     """Build one-hot room type + passthrough numeric features + Random Forest."""
 
-    preprocessor = ColumnTransformer(
-        transformers=[
-            (
-                "room_type",
-                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-                list(CATEGORICAL_FEATURES),
-            ),
-            ("numeric", "passthrough", list(NUMERIC_FEATURES)),
-        ],
-        remainder="drop",
-        verbose_feature_names_out=False,
-    )
     regressor = RandomForestRegressor(
         n_estimators=200,
         max_depth=8,
@@ -98,7 +89,45 @@ def build_random_forest_pipeline(
         random_state=random_state,
         n_jobs=n_jobs,
     )
-    return Pipeline([("preprocessor", preprocessor), ("regressor", regressor)])
+    return Pipeline(
+        [
+            ("preprocessor", build_feature_preprocessor(feature_names=feature_names)),
+            ("regressor", regressor),
+        ]
+    )
+
+
+def build_feature_preprocessor(
+    *, feature_names: Sequence[str] = FEATURE_NAMES
+) -> ColumnTransformer:
+    """Build the shared one-hot/passthrough sklearn transformer."""
+
+    selected = tuple(feature_names)
+    if not selected:
+        raise ValueError("feature_names must not be empty")
+    if len(set(selected)) != len(selected):
+        raise ValueError("feature_names must not contain duplicates")
+    unknown = sorted(set(selected) - set(FEATURE_NAMES))
+    if unknown:
+        raise ValueError(f"unknown feature names: {unknown}")
+    categorical = [name for name in CATEGORICAL_FEATURES if name in selected]
+    numeric = [name for name in NUMERIC_FEATURES if name in selected]
+    transformers: list[tuple[str, object, list[str]]] = []
+    if categorical:
+        transformers.append(
+            (
+                "room_type",
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                categorical,
+            )
+        )
+    if numeric:
+        transformers.append(("numeric", "passthrough", numeric))
+    return ColumnTransformer(
+        transformers=transformers,
+        remainder="drop",
+        verbose_feature_names_out=False,
+    )
 
 
 def build_randomized_search(
@@ -108,6 +137,7 @@ def build_randomized_search(
     random_state: int = DEFAULT_RANDOM_STATE,
     n_jobs: int = 1,
     param_distributions: Mapping[str, Sequence[object]] | None = None,
+    feature_names: Sequence[str] = FEATURE_NAMES,
 ) -> RandomizedSearchCV:
     """Create deterministic RandomizedSearchCV scored by validation MAE."""
 
@@ -119,7 +149,11 @@ def build_randomized_search(
         else dict(param_distributions)
     )
     return RandomizedSearchCV(
-        estimator=build_random_forest_pipeline(random_state=random_state, n_jobs=n_jobs),
+        estimator=build_random_forest_pipeline(
+            random_state=random_state,
+            n_jobs=n_jobs,
+            feature_names=feature_names,
+        ),
         param_distributions=distributions,
         n_iter=n_iter,
         scoring="neg_mean_absolute_error",
@@ -136,6 +170,8 @@ def tune_random_forest(
     snapshots: pd.DataFrame,
     *,
     config: TrainingConfig | None = None,
+    feature_names: Sequence[str] = FEATURE_NAMES,
+    param_distributions: Mapping[str, Sequence[object]] | None = None,
 ) -> TrainingResult:
     """Tune only on historical rows and retain the final six-month holdout.
 
@@ -145,6 +181,7 @@ def tune_random_forest(
     """
 
     training_config = config or TrainingConfig()
+    selected_features = tuple(feature_names)
     split = temporal_train_test_split(snapshots, holdout_months=training_config.holdout_months)
     cv = ExpandingWindowSplit(
         n_splits=training_config.cv_splits,
@@ -156,6 +193,13 @@ def tune_random_forest(
         n_iter=training_config.search_iterations,
         random_state=training_config.random_state,
         n_jobs=training_config.n_jobs,
+        feature_names=selected_features,
+        param_distributions=param_distributions,
     )
     search.fit(split.X_train, split.y_train, groups=split.train_dates)
-    return TrainingResult(search=search, split=split)
+    return TrainingResult(
+        search=search,
+        split=split,
+        config=training_config,
+        feature_names=selected_features,
+    )

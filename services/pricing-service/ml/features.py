@@ -53,6 +53,14 @@ TARGET_NAME = "price_multiplier"
 TARGET_DTYPE = "float64"
 
 FEATURE_NAMES: tuple[str, ...] = tuple(spec.name for spec in FEATURE_SCHEMA)
+EVENT_FEATURES: tuple[str, ...] = (
+    "demand_indicator",
+    "event_count_active",
+    "max_event_score",
+)
+NON_EVENT_FEATURES: tuple[str, ...] = tuple(
+    name for name in FEATURE_NAMES if name not in EVENT_FEATURES
+)
 FEATURE_DTYPES: dict[str, FeatureDtype] = {spec.name: spec.dtype for spec in FEATURE_SCHEMA}
 CATEGORICAL_FEATURES: tuple[str, ...] = tuple(
     spec.name for spec in FEATURE_SCHEMA if spec.dtype == "category"

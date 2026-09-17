@@ -2,7 +2,7 @@
 
 Machine-learning pipeline for Phase 5.
 
-## Implemented: steps 1–3
+## Implemented: steps 1–8
 
 ### Shared feature contract
 
@@ -51,7 +51,71 @@ Only the train partition enters `RandomizedSearchCV`; the selected estimator is
 refitted on the full train partition. CV scores are tuning diagnostics. Final model
 metrics must be computed once from the returned untouched test partition in Step 4.
 
+### Offline evaluation and RQ1 baselines
+
+`evaluation.py` evaluates the frozen model on the untouched holdout and writes:
+
+- `metrics.json`: MAE, RMSE, R², and MAPE (%) for multiplier and resulting PLN price;
+- the same metrics by month, event/normal night, and room type;
+- RF-versus-baseline MAE improvements and `rf_beats_all_baselines`;
+- raw-feature permutation importance using holdout negative MAE;
+- `predicted_vs_actual.png`, `residual_distribution.png`, and
+  `permutation_feature_importance.png`.
+
+All compared models use exactly the same temporal holdout:
+
+| ID | Baseline |
+|----|----------|
+| B0 | Static multiplier `1.0` (base price) |
+| B1 | Pre-declared weekday multiplier × monthly season multiplier; no target fitting |
+| B2 | `LinearRegression` with the same one-hot/passthrough preprocessing and features |
+
+The manual B1 tables are constants in `baselines.py` and are persisted in
+`metrics.json`, so the result is reproducible and cannot be tuned after seeing the
+holdout. The RF justification flag is true only when RF has lower overall MAE than
+every baseline for both multiplier and PLN price. A failed criterion is reported,
+not hidden by aborting artifact generation.
+
+### RQ2 event-feature ablation
+
+`python -m ml.ablation` runs the same temporal split, expanding-window search,
+hyperparameter space, random seed, and evaluation twice. The second run removes only
+`demand_indicator`, `event_count_active`, and `max_event_score` from the shared
+preprocessor. Each run gets its own `metrics.json` and figures. JSON, CSV, and Markdown
+comparison tables are generated under `artifacts/experiments/event-ablation/`; no
+thesis values need to be copied by hand.
+
+### Versioned artifacts and registry
+
+`python -m ml.train` writes `artifacts/models/<version>/model.joblib` and
+`metadata.json`. The sidecar contains the exact dataset SHA-256, training configuration,
+selected hyperparameters, model feature list, complete metrics, feature schema and hash,
+Git SHA, and UTC training time. Supplying `--register-database-url` also inserts an
+inactive row into `pricing.model_registry`.
+
+Registry operations are separate from training:
+
+```shell
+python -m ml.registry register --metadata ../../artifacts/models/<version>/metadata.json
+python -m ml.registry promote --version <version>
+```
+
+The database URL comes from `--database-url` or `PRICING_DATABASE_URL`. Promotion is one
+transaction: it locks the requested row, deactivates the previous model, and activates
+the requested version. The existing partial unique index guarantees that at most one row
+is active.
+
+### CI metric regression gate
+
+`python -m ml.gate` performs deterministic quick training and compares multiplier MAE
+and PLN-price MAE with committed `ml/baseline_metrics.json`. A metric may regress by at
+most 10%. The command writes `quick_metrics.json` and `gate_report.json`, and returns a
+non-zero status on schema mismatch or metric regression. CI regenerates the seeded
+default dataset before invoking the gate and uploads both evidence files.
+
+Root shortcuts are available as `task ml:train`, `task ml:ablation`,
+`task ml:promote VERSION=<version>`, and `task ml:gate`.
+
 ## Remaining Phase 5 work
 
-Offline metrics and plots, baselines, event-feature ablation, artifact registry,
-regression gate, and behavioral tests are implemented in the following steps.
+Behavioral and metamorphic model tests are implemented in the following step.

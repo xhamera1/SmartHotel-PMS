@@ -39,6 +39,7 @@ jobs:
               - '.github/workflows/**'
             python:
               - 'services/pricing-service/**'
+              - '.github/workflows/**'
             frontend:
               - 'frontend/**'
             infra:
@@ -99,7 +100,7 @@ jobs:
           if-no-files-found: warn
 
   python:
-    name: pricing-service (lint + migrations + datagen tests)
+    name: pricing-service (lint + tests + ML gate + migrations)
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
@@ -133,6 +134,17 @@ jobs:
         run: uv run ruff format --check .
       - name: Datagen unit tests
         run: uv run pytest -q
+      - name: ML quick-training metric regression gate
+        run: |
+          uv run python -m datagen run --config datagen/configs/default.yaml --output ../../tmp/ml-gate-dataset
+          uv run python -m ml.gate --dataset ../../tmp/ml-gate-dataset/snapshots.parquet --output ../../tmp/ml-gate
+      - name: Publish ML metric gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pricing-ml-metric-gate
+          path: tmp/ml-gate/
+          if-no-files-found: warn
       - name: Migrations — upgrade, idempotent re-run, downgrade, re-upgrade
         env:
           PRICING_DATABASE_URL: postgresql+psycopg://postgres:ci@localhost:5432/pricing_ci
