@@ -12,6 +12,7 @@ import pandas as pd
 from datagen.config import DatagenConfig
 from datagen.tables import DATASET_NAMES
 from datagen.validate import DatasetValidationError, ValidationReport, validate_datasets
+from ml.features import FEATURE_SCHEMA_HASH, feature_schema_payload
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,8 @@ def write_dataset_bundle(
         "generated_at": datetime.now(UTC).isoformat(),
         "seed": config.seed,
         "config_hash": config.config_hash(),
+        "feature_schema": feature_schema_payload(),
+        "feature_schema_hash": FEATURE_SCHEMA_HASH,
         "config_path": str(config_path.resolve()),
         "horizon": {
             "start": config.horizon.start.isoformat(),

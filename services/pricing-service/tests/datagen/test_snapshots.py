@@ -12,13 +12,15 @@ from datagen.calendar import build_calendar_frame
 from datagen.cli import main
 from datagen.config import DatagenConfig
 from datagen.demand import build_night_demands, nights_to_frame, simulate_bookings
-from datagen.events import generate_events
+from datagen.events import SyntheticEvent, generate_events
 from datagen.pipeline import seed_rng
 from datagen.snapshots import (
+    _event_features_by_date,
     booking_claims_by_night,
     build_snapshots,
     occupancy_as_of,
 )
+from ml.features import FEATURE_NAMES, TARGET_NAME
 
 CONFIGS = Path(__file__).resolve().parents[2] / "datagen" / "configs"
 
@@ -98,6 +100,40 @@ def test_cancelled_bookings_do_not_occupy() -> None:
     assert remaining == 5
 
 
+def test_synthetic_events_map_to_serving_shape() -> None:
+    events = [
+        SyntheticEvent(
+            event_id="E1",
+            category="MUSIC",
+            name="Large concert",
+            description="Test",
+            start_date=date(2024, 6, 10),
+            end_date=date(2024, 6, 11),
+            attendance=10_000,
+            distance_km=1.0,
+            true_uplift=0.5,
+            venue="Venue",
+        ),
+        SyntheticEvent(
+            event_id="E2",
+            category="CULTURE",
+            name="Festival",
+            description="Test",
+            start_date=date(2024, 6, 11),
+            end_date=date(2024, 6, 11),
+            attendance=2_000,
+            distance_km=2.0,
+            true_uplift=0.2,
+            venue="Venue",
+        ),
+    ]
+
+    by_date = _event_features_by_date(events)
+
+    assert by_date[date(2024, 6, 10)] == (50, 1, 50)
+    assert by_date[date(2024, 6, 11)] == (56, 2, 50)
+
+
 def test_snapshot_row_count_and_bounds(tiny_config: DatagenConfig) -> None:
     calendar, events, nights_df, bookings = _run_through_bookings(tiny_config)
     snaps = build_snapshots(tiny_config, calendar, events, nights_df, bookings)
@@ -107,8 +143,11 @@ def test_snapshot_row_count_and_bounds(tiny_config: DatagenConfig) -> None:
     n_leads = len(tiny_config.snapshots.lead_times_days)
     assert len(snaps) == n_days * n_types * n_leads
 
-    assert snaps["occupancy_so_far"].between(0.0, 1.0).all()
+    assert snaps["occupancy_rate"].between(0.0, 1.0).all()
     assert (snaps["rooms_remaining"] >= 0).all()
+    assert snaps["demand_indicator"].between(0, 100).all()
+    assert snaps["max_event_score"].between(0, 100).all()
+    assert (snaps["event_count_active"] >= 0).all()
     assert set(snaps["lead_time_days"]) == set(tiny_config.snapshots.lead_times_days)
 
     # snapshot_date = stay_date - lead_time
@@ -129,14 +168,14 @@ def test_snapshot_target_matches_nights(tiny_config: DatagenConfig) -> None:
 
 
 def test_later_lead_time_occupancy_not_lower(tiny_config: DatagenConfig) -> None:
-    """Closer to stay (smaller lead), occupancy_so_far is non-decreasing."""
+    """Closer to stay (smaller lead), occupancy_rate is non-decreasing."""
     calendar, events, nights_df, bookings = _run_through_bookings(tiny_config)
     snaps = build_snapshots(tiny_config, calendar, events, nights_df, bookings)
 
     leads = sorted(tiny_config.snapshots.lead_times_days, reverse=True)  # far → near
     for (_, _), group in snaps.groupby(["stay_date", "room_type"], sort=False):
         ordered = group.set_index("lead_time_days").loc[leads]
-        occ = ordered["occupancy_so_far"].tolist()
+        occ = ordered["occupancy_rate"].tolist()
         assert occ == sorted(occ)  # non-decreasing as lead shrinks (far→near in leads)
 
 
@@ -157,18 +196,4 @@ def test_cli_writes_snapshots(tmp_path: Path, tiny_config: DatagenConfig) -> Non
         n_days * len(tiny_config.hotel.room_types) * len(tiny_config.snapshots.lead_times_days)
     )
     assert len(snaps) == expected
-    assert set(snaps.columns) >= set(
-        {
-            "stay_date",
-            "room_type",
-            "snapshot_date",
-            "lead_time_days",
-            "occupancy_so_far",
-            "rooms_remaining",
-            "season_factor",
-            "weekday_factor",
-            "holiday_flag",
-            "event_uplift_known",
-            "price_multiplier",
-        }
-    )
+    assert list(snaps.columns) == ["stay_date", "snapshot_date", *FEATURE_NAMES, TARGET_NAME]

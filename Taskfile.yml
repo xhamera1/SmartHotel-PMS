@@ -103,7 +103,7 @@ tasks:
         platforms: [linux, darwin]
 
   test:python:
-    desc: pricing-service unit tests (datagen + pandera + EDA)
+    desc: pricing-service unit tests (datagen + pandera + EDA + ML)
     dir: services/pricing-service
     cmds:
       - uv run pytest -q

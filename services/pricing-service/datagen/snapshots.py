@@ -9,9 +9,9 @@ from datetime import date, timedelta
 import pandas as pd
 
 from datagen.config import DatagenConfig
-from datagen.demand import event_uplift_by_date
 from datagen.events import SyntheticEvent
 from datagen.tables import SNAPSHOTS_COLUMNS, empty_frame
+from ml.features import FEATURE_NAMES, TARGET_NAME, build_feature_frame, build_feature_row
 
 
 def _as_date(value: object) -> date:
@@ -71,6 +71,34 @@ def occupancy_as_of(
     return occupied / rooms, remaining
 
 
+def _event_features_by_date(
+    events: list[SyntheticEvent],
+) -> dict[date, tuple[int, int, int]]:
+    """Return synthetic equivalents of the future scored-event pipeline.
+
+    Datagen's ground-truth uplift is mapped deterministically onto the same 0..100
+    impact-score scale that Phase 7 will estimate from real event data. This bridge is
+    synthetic-data-only; serving will receive scored events. The nightly demand
+    indicator follows D9: max score plus 30% of the remaining active-event scores,
+    capped at 100.
+    """
+
+    scores_by_date: dict[date, list[int]] = defaultdict(list)
+    for event in events:
+        score = min(100, max(0, round(event.true_uplift * 100)))
+        active_date = event.start_date
+        while active_date <= event.end_date:
+            scores_by_date[active_date].append(score)
+            active_date += timedelta(days=1)
+
+    result: dict[date, tuple[int, int, int]] = {}
+    for active_date, scores in scores_by_date.items():
+        maximum = max(scores)
+        indicator = min(100, round(maximum + 0.3 * (sum(scores) - maximum)))
+        result[active_date] = (indicator, len(scores), maximum)
+    return result
+
+
 def build_snapshots(
     config: DatagenConfig,
     calendar: pd.DataFrame,
@@ -82,8 +110,9 @@ def build_snapshots(
     One row per (stay_date, room_type, lead_time) with features known at that moment.
 
     Target ``price_multiplier`` is the night-level optimum (D7); it does not vary with
-    lead time. Event uplift uses the public event calendar for the stay night (same
-    indicator available to serving). Occupancy uses only bookings placed by snapshot.
+    lead time. Feature values are built by ``ml.features`` so datagen and the future
+    serving path share names, order, dtypes, calendar semantics, and validation.
+    Occupancy uses only bookings placed by the snapshot date.
     """
     if nights.empty:
         return empty_frame(SNAPSHOTS_COLUMNS)
@@ -96,8 +125,7 @@ def build_snapshots(
     cal["date_key"] = pd.to_datetime(cal["date"]).dt.date
     cal_by_date = {row.date_key: row for row in cal.itertuples(index=False)}
 
-    # Event uplift is a stay-night calendar feature (announced publicly).
-    uplift_cache: dict[date, float] = {}
+    event_features = _event_features_by_date(events)
 
     rows: list[dict[str, object]] = []
     for night in nights.itertuples(index=False):
@@ -109,10 +137,8 @@ def build_snapshots(
             msg = f"calendar missing stay_date {stay_date}"
             raise KeyError(msg)
 
-        if stay_date not in uplift_cache:
-            uplift_cache[stay_date] = event_uplift_by_date(events, stay_date)
-        event_known = uplift_cache[stay_date]
         multiplier = float(night.price_multiplier)
+        demand_indicator, event_count, max_event_score = event_features.get(stay_date, (0, 0, 0))
 
         for lead in lead_times:
             snapshot_date = stay_date - timedelta(days=lead)
@@ -123,26 +149,29 @@ def build_snapshots(
                 snapshot_date=snapshot_date,
                 rooms=rooms,
             )
+            feature_row = build_feature_row(
+                stay_date=stay_date,
+                lead_time_days=lead,
+                occupancy_rate=occ,
+                rooms_remaining=remaining,
+                base_price=float(night.base_price),
+                room_type=room_type,
+                demand_indicator=demand_indicator,
+                event_count_active=event_count,
+                max_event_score=max_event_score,
+            )
             rows.append(
                 {
                     "stay_date": stay_date,
-                    "room_type": room_type,
                     "snapshot_date": snapshot_date,
-                    "lead_time_days": lead,
-                    "occupancy_so_far": occ,
-                    "rooms_remaining": remaining,
-                    "season_factor": float(cal_row.season_factor),
-                    "weekday_factor": float(cal_row.weekday_factor),
-                    "holiday_flag": int(cal_row.holiday_flag),
-                    "event_uplift_known": event_known,
+                    **feature_row,
                     "price_multiplier": multiplier,
                 }
             )
 
-    frame = pd.DataFrame(rows)
-    frame["stay_date"] = pd.to_datetime(frame["stay_date"])
-    frame["snapshot_date"] = pd.to_datetime(frame["snapshot_date"])
-    frame["lead_time_days"] = frame["lead_time_days"].astype("int64")
-    frame["rooms_remaining"] = frame["rooms_remaining"].astype("int64")
-    frame["holiday_flag"] = frame["holiday_flag"].astype("int64")
-    return frame
+    context = pd.DataFrame(rows)
+    features = build_feature_frame(context.loc[:, list(FEATURE_NAMES)].to_dict(orient="records"))
+    identifiers = context.loc[:, ["stay_date", "snapshot_date"]].apply(pd.to_datetime)
+    target = context.loc[:, [TARGET_NAME]].astype("float64")
+    frame = pd.concat([identifiers, features, target], axis="columns")
+    return frame.loc[:, list(SNAPSHOTS_COLUMNS)]

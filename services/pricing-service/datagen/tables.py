@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from ml.features import FEATURE_SCHEMA, TARGET_DTYPE, TARGET_NAME
+
 EVENTS_COLUMNS: dict[str, str] = {
     "event_id": "string",
     "category": "string",
@@ -47,18 +49,15 @@ BOOKINGS_COLUMNS: dict[str, str] = {
     "cancelled": "bool",
 }
 
-SNAPSHOTS_COLUMNS: dict[str, str] = {
+SNAPSHOT_CONTEXT_COLUMNS: dict[str, str] = {
     "stay_date": "datetime64[ns]",
-    "room_type": "string",
     "snapshot_date": "datetime64[ns]",
-    "lead_time_days": "int64",
-    "occupancy_so_far": "float64",
-    "rooms_remaining": "int64",
-    "season_factor": "float64",
-    "weekday_factor": "float64",
-    "holiday_flag": "int64",
-    "event_uplift_known": "float64",
-    "price_multiplier": "float64",
+}
+
+SNAPSHOTS_COLUMNS: dict[str, str] = {
+    **SNAPSHOT_CONTEXT_COLUMNS,
+    **{spec.name: spec.dtype for spec in FEATURE_SCHEMA},
+    TARGET_NAME: TARGET_DTYPE,
 }
 
 DATASET_NAMES = ("calendar", "events", "nights", "bookings", "snapshots")

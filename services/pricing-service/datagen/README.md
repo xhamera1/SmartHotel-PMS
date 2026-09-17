@@ -52,9 +52,9 @@ Dataset specification: [`docs/qa/dataset-spec.md`](../../../docs/qa/dataset-spec
 | `events.parquet` | Synthetic events + true uplift |
 | `nights.parquet` | Per (date, room type) demand / optimal price |
 | `bookings.parquet` | Simulated bookings |
-| `snapshots.parquet` | Lead-time training rows |
+| `snapshots.parquet` | Lead-time rows following the canonical `ml/features.py` contract |
 | `validation_report.json` | Pandera pass/fail per table |
-| `metadata.json` | `config_hash`, `seed`, `row_counts`, validation status |
+| `metadata.json` | Config + feature-schema hashes, seed, row counts, validation status |
 
 Default snapshot size ≈ 3 × 365 × 3 × 5 ≈ **16 440** rows. Generation fails loudly if any
 pandera contract is violated.

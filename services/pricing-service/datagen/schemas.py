@@ -82,15 +82,21 @@ class BookingsSchema(pa.DataFrameModel):
 
 class SnapshotsSchema(pa.DataFrameModel):
     stay_date: Series[pa.DateTime] = pa.Field(nullable=False)
-    room_type: Series[str] = pa.Field(nullable=False, str_length={"min_value": 1})
     snapshot_date: Series[pa.DateTime] = pa.Field(nullable=False)
+    day_of_week: Series[int] = pa.Field(ge=0, le=6, nullable=False)
+    month: Series[int] = pa.Field(ge=1, le=12, nullable=False)
+    week_of_year: Series[int] = pa.Field(ge=1, le=53, nullable=False)
+    is_weekend: Series[bool] = pa.Field(nullable=False)
+    is_holiday: Series[bool] = pa.Field(nullable=False)
+    is_holiday_adjacent: Series[bool] = pa.Field(nullable=False)
     lead_time_days: Series[int] = pa.Field(gt=0, nullable=False)
-    occupancy_so_far: Series[float] = pa.Field(ge=0, le=1, nullable=False)
+    occupancy_rate: Series[float] = pa.Field(ge=0, le=1, nullable=False)
     rooms_remaining: Series[int] = pa.Field(ge=0, nullable=False)
-    season_factor: Series[float] = pa.Field(gt=0, nullable=False)
-    weekday_factor: Series[float] = pa.Field(gt=0, nullable=False)
-    holiday_flag: Series[int] = pa.Field(isin=[0, 1], nullable=False)
-    event_uplift_known: Series[float] = pa.Field(ge=0, nullable=False)
+    base_price: Series[float] = pa.Field(gt=0, nullable=False)
+    room_type: Series[str] = pa.Field(nullable=False, str_length={"min_value": 1})
+    demand_indicator: Series[int] = pa.Field(ge=0, le=100, nullable=False)
+    event_count_active: Series[int] = pa.Field(ge=0, nullable=False)
+    max_event_score: Series[int] = pa.Field(ge=0, le=100, nullable=False)
     price_multiplier: Series[float] = pa.Field(gt=0, nullable=False)
 
     class Config:

@@ -84,13 +84,25 @@ Training rows: one per `(stay_date, room_type, lead_time_days)`.
 |--------|----------------|
 | Composite key | Unique |
 | `snapshot_date` | `stay_date − lead_time_days` (`< stay_date`) |
-| `occupancy_so_far` | `[0, 1]` — only bookings with `booked_at ≤ snapshot_date` |
+| Calendar features | `day_of_week` (Mon=0), `month`, ISO `week_of_year`, weekend / Polish holiday / adjacent flags |
+| `occupancy_rate` | `[0, 1]` — only bookings with `booked_at ≤ snapshot_date` |
 | `rooms_remaining` | `≥ 0` |
-| `event_uplift_known` | Public calendar uplift for the stay night |
+| `base_price`, `room_type` | Room-type configuration / request data |
+| Event features | `demand_indicator` and `max_event_score` in `[0,100]`; active-event count `≥ 0` |
 | `price_multiplier` | Night-level target (constant across leads) |
 
 **Information-set rule:** snapshot features must be knowable at `snapshot_date`.
 Occupancy never includes future bookings (enforced by unit tests).
+Feature names, dtypes, and order come exclusively from `ml/features.py`; its SHA-256
+is written to dataset metadata and later to every model artifact (D20).
+
+### Phase 5 temporal partitions
+
+The final six months are an untouched test window. With the default horizon this is
+`2025-07-01` through `2025-12-31`; training ends at the inclusive cutoff
+`2025-06-30`. Hyperparameter selection uses expanding-window validation only inside
+the training partition. Splits are grouped by `stay_date`, preventing different room
+types or lead-time snapshots for the same night from crossing a fold boundary.
 
 ## Validation
 
@@ -119,3 +131,5 @@ Headless: `task datagen:eda` → `artifacts/eda/default/`
    `base_price × m̂` to `[min_price, max_price]` (ADR-0009 grosz rounding).
 3. **Lead-time snapshots** teach booking-curve dynamics without leaking future
    occupancy.
+4. **Calendar ordinals** are not cyclically encoded: Random Forest handles ordinal
+   splits natively. The year-boundary discontinuity is documented as a limitation.

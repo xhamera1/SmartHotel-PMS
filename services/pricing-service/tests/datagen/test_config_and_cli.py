@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from datagen.cli import main
 from datagen.config import DatagenConfig
+from ml.features import FEATURE_SCHEMA_HASH, feature_schema_payload
 
 CONFIGS = Path(__file__).resolve().parents[2] / "datagen" / "configs"
 
@@ -61,6 +62,8 @@ def test_cli_run_writes_parquet_and_metadata(tmp_path: Path) -> None:
     meta = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
     assert meta["seed"] == 7
     assert meta["config_hash"] == DatagenConfig.from_yaml(CONFIGS / "tiny.yaml").config_hash()
+    assert meta["feature_schema"] == feature_schema_payload()
+    assert meta["feature_schema_hash"] == FEATURE_SCHEMA_HASH
     assert meta["row_counts"]["calendar"] == 14
     assert meta["row_counts"]["events"] >= 1
     assert meta["row_counts"]["nights"] == 14 * 2  # tiny: 2 room types
