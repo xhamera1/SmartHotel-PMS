@@ -65,5 +65,6 @@ def test_cli_run_writes_parquet_and_metadata(tmp_path: Path) -> None:
     assert meta["row_counts"]["events"] >= 1
     assert meta["row_counts"]["nights"] == 14 * 2  # tiny: 2 room types
     assert meta["row_counts"]["bookings"] > 0
-    assert meta["row_counts"]["snapshots"] == 0
+    # tiny: 14 days × 2 room types × 2 lead times
+    assert meta["row_counts"]["snapshots"] == 14 * 2 * 2
     assert set(meta["files"]) == {"calendar", "events", "nights", "bookings", "snapshots"}

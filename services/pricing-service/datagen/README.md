@@ -13,7 +13,7 @@ global `seed`, and writes parquet tables plus a JSON metadata sidecar under
 | 3 | Synthetic event catalog | **done** |
 | 4 | Demand & booking simulation | **done** |
 | 5 | Optimal-price target | **done** |
-| 6 | Training snapshots | pending |
+| 6 | Training snapshots | **done** |
 | 7 | EDA + pandera | pending |
 
 ## Usage
@@ -53,4 +53,10 @@ descriptions + `true_uplift` ground truth for Gemini E3). Step 4 fills `nights.p
 (latent demand) and `bookings.parquet` (Poisson/gamma/logistic sim with capacity + cancels).
 Step 5 grid-searches `p* = argmax_p p · E[bookings(p)]` on the true demand curve within
 each room type's `[min_price, max_price]` (1 PLN step) and stores
-`price_multiplier = p* / base_price` (D7). Snapshots stay empty until step 6.
+`price_multiplier = p* / base_price` (D7).
+
+Step 6 emits one training row per `(stay_date, room_type, lead_time)` for configured leads
+(default 60/30/14/7/1). Features obey the information-set rule: `occupancy_so_far` /
+`rooms_remaining` count only bookings with `booked_at ≤ snapshot_date`; calendar factors and
+`event_uplift_known` are stay-night public-calendar features; target is the night's
+`price_multiplier`. Default size ≈ 3 × 365 × 3 × 5 ≈ 16–20 k rows.
