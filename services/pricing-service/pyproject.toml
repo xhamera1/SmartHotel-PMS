@@ -7,10 +7,16 @@ dependencies = [
     "alembic>=1.16",
     "sqlalchemy>=2.0",
     "psycopg[binary]>=3.2",
+    "pydantic>=2.13.5",
+    "pyyaml>=6.0.3",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.1",
+    "numpy>=2.5.3",
 ]
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.12",
 ]
 
@@ -31,3 +37,7 @@ select = [
     "UP",  # pyupgrade
     "SIM", # simplify
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

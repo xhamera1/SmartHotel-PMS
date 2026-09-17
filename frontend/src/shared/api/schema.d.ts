@@ -272,6 +272,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/pricing/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refresh_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/guests": {
         parameters: {
             query?: never;
@@ -320,6 +336,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/reservations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/rate-plans": {
         parameters: {
             query?: never;
@@ -343,7 +375,55 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["get_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricing/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricing/demand-indicators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["demandIndicators"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dashboard/timeseries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["timeseries"];
         put?: never;
         post?: never;
         delete?: never;
@@ -551,6 +631,12 @@ export interface components {
             active?: boolean;
             validPriceBand?: boolean;
         };
+        PricingRefreshResponse: {
+            status?: string;
+            message?: string;
+            /** Format: int32 */
+            daysUpdated?: number;
+        };
         CreateGuestRequest: {
             firstName?: string;
             lastName?: string;
@@ -651,9 +737,45 @@ export interface components {
             roomTypeCode?: string;
             days?: components["schemas"]["RateCalendarDayResponse"][];
         };
+        PricingEventResponse: {
+            id?: string;
+            title?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            impactScore?: number;
+            confidence?: number;
+            rationale?: string;
+            source?: string;
+        };
+        DemandIndicatorPoint: {
+            /** Format: date */
+            date?: string;
+            /** Format: int32 */
+            demandIndicator?: number;
+        };
         PageResponseGuestResponse: {
             content?: components["schemas"]["GuestResponse"][];
             page?: components["schemas"]["PageMeta"];
+        };
+        DashboardDayPoint: {
+            /** Format: date */
+            date?: string;
+            occupancy?: number;
+            adr?: number;
+            /** Format: int64 */
+            roomsOccupied?: number;
+            /** Format: int64 */
+            roomsSellable?: number;
+        };
+        DashboardTimeseriesResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            currency?: string;
+            points?: components["schemas"]["DashboardDayPoint"][];
         };
         DashboardKpisResponse: {
             /** Format: date */
@@ -1258,6 +1380,26 @@ export interface operations {
             };
         };
     };
+    refresh_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PricingRefreshResponse"];
+                };
+            };
+        };
+    };
     list_3: {
         parameters: {
             query?: {
@@ -1353,6 +1495,28 @@ export interface operations {
             };
         };
     };
+    get_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReservationResponse"];
+                };
+            };
+        };
+    };
     list_4: {
         parameters: {
             query?: never;
@@ -1373,7 +1537,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query: {
                 roomTypeCode: string;
@@ -1393,6 +1557,74 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RateCalendarResponse"];
+                };
+            };
+        };
+    };
+    events: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PricingEventResponse"][];
+                };
+            };
+        };
+    };
+    demandIndicators: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DemandIndicatorPoint"][];
+                };
+            };
+        };
+    };
+    timeseries: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DashboardTimeseriesResponse"];
                 };
             };
         };

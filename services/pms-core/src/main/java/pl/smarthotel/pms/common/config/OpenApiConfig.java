@@ -43,7 +43,10 @@ public class OpenApiConfig {
                         new Tag().name("Admin — Reservations").description("ADMIN or RECEPTIONIST"),
                         new Tag().name("Admin — Rate calendar").description("View both roles; MANUAL override ADMIN"),
                         new Tag().name("Admin — Rate plans").description("ADMIN or RECEPTIONIST"),
-                        new Tag().name("Admin — Dashboard").description("ADMIN or RECEPTIONIST")))
+                        new Tag().name("Admin — Dashboard").description("ADMIN or RECEPTIONIST"),
+                        new Tag()
+                                .name("Admin — Pricing proxies")
+                                .description("Phase 8 stubs until pricing-service is wired")))
                 .components(new Components()
                         .addSecuritySchemes(
                                 BEARER_JWT,

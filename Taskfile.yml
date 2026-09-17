@@ -91,6 +91,7 @@ tasks:
     cmds:
       - task: smoke
       - task: test:java
+      - task: test:python
 
   test:java:
     desc: PMS Flyway migrations and reservation constraints (isolated PostgreSQL 17 via Testcontainers)
@@ -100,6 +101,18 @@ tasks:
         platforms: [windows]
       - cmd: sh ./mvnw -B -ntp verify
         platforms: [linux, darwin]
+
+  test:python:
+    desc: pricing-service unit tests (datagen config/CLI; expands in Phase 4+)
+    dir: services/pricing-service
+    cmds:
+      - uv run pytest -q
+
+  datagen:
+    desc: Generate synthetic dataset (parquet + metadata) into artifacts/datasets/default
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m datagen run --config datagen/configs/default.yaml --output ../../artifacts/datasets/default
 
   run:pms:
     desc: Start pms-core locally (dev profile, Compose PostgreSQL)

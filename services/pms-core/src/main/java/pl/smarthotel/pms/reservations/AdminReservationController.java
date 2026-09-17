@@ -55,6 +55,11 @@ public class AdminReservationController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @GetMapping("/{id}")
+    ReservationResponse get(@PathVariable long id) {
+        return reservationService.getAdmin(id);
+    }
+
     @PostMapping("/{id}/check-in")
     ReservationResponse checkIn(@PathVariable long id) {
         return reservationService.checkIn(id);

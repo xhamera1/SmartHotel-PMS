@@ -18,6 +18,7 @@ pnpm dev              # http://localhost:5173 (proxies /api → VITE_API_BASE_UR
 pnpm lint
 pnpm typecheck
 pnpm build
+pnpm test             # vitest (booking zod schemas, …)
 pnpm generate:api     # regenerate src/shared/api/schema.d.ts
 pnpm check:api        # fail if schema.d.ts drifts from committed OpenAPI
 ```
@@ -28,14 +29,28 @@ pnpm check:api        # fail if schema.d.ts drifts from committed OpenAPI
 src/
   app/                 App shell, router
   features/
-    booking/           public booking pages
-    admin/             login, shell, placeholders (CRUD in step 4)
+    booking/           public search → checkout → confirmation → manage
+    admin/             dashboard, reservations, guests, rates, events; ADMIN CRUD rooms
   shared/
     api/               axios client, TanStack Query, OpenAPI schema
     auth/              in-memory session, RequireAuth / RequireRole
     theme/             MUI theme
-    lib/               request-id helpers
+    lib/               request-id, hotel dates, PLN formatting
 ```
+
+## Public booking
+
+- Search (date range + guests) → availability cards (nightly BAR + rate-plan totals from API)
+- Checkout: React Hook Form + zod guest schema + mock payment → `POST /reservations`
+- Confirmation code page; manage lookup/cancel by code + email
+- Prices via `Intl.NumberFormat('pl-PL', { currency: 'PLN' })` only from API numbers
+
+## UX / E2E hooks
+
+- Loading: `PageSkeleton`; empty: `EmptyState`; HTTP errors: `ProblemAlert` (RFC 7807 fields)
+- Render crashes: `AppErrorBoundary` at the app root
+- Keyboard: skip-to-content, `:focus-visible` outlines, reservation rows open on Enter/Space
+- `data-testid` convention: kebab-case, feature-prefixed — see `src/shared/ui/testids.ts`
 
 ## Auth (ADR-0014)
 

@@ -154,6 +154,11 @@ public class ReservationService {
         return toResponse(reservationRepository.save(reservation));
     }
 
+    @Transactional(readOnly = true)
+    public ReservationResponse getAdmin(long id) {
+        return toResponse(requireById(id));
+    }
+
     @Transactional
     public ReservationResponse checkIn(long id) {
         ReservationEntity reservation = requireById(id);

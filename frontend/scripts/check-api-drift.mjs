@@ -11,14 +11,14 @@ const openapi = resolve(root, '../docs/api/pms-openapi.json')
 const cli = resolve(root, 'node_modules/openapi-typescript/bin/cli.js')
 
 const generate = spawnSync(process.execPath, [cli, openapi, '-o', temp], {
-  cwd: root,
-  encoding: 'utf8',
+    cwd: root,
+    encoding: 'utf8',
 })
 
 if (generate.status !== 0) {
-  console.error(generate.stdout)
-  console.error(generate.stderr)
-  process.exit(generate.status ?? 1)
+    console.error(generate.stdout)
+    console.error(generate.stderr)
+    process.exit(generate.status ?? 1)
 }
 
 const a = readFileSync(committed)
@@ -29,10 +29,10 @@ const ha = createHash('sha256').update(a).digest()
 const hb = createHash('sha256').update(b).digest()
 
 if (ha.length !== hb.length || !timingSafeEqual(ha, hb)) {
-  console.error(
-    'OpenAPI types drifted. Run `pnpm generate:api` after updating docs/api/pms-openapi.json.',
-  )
-  process.exit(1)
+    console.error(
+        'OpenAPI types drifted. Run `pnpm generate:api` after updating docs/api/pms-openapi.json.',
+    )
+    process.exit(1)
 }
 
 console.log('OpenAPI types are in sync with docs/api/pms-openapi.json')

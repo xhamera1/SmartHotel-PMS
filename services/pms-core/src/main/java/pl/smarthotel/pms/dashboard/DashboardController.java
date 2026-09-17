@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import pl.smarthotel.pms.common.web.ApiPaths;
 
@@ -26,5 +27,10 @@ public class DashboardController {
     @GetMapping("/kpis")
     DashboardKpisResponse kpis() {
         return dashboardService.kpis();
+    }
+
+    @GetMapping("/timeseries")
+    DashboardTimeseriesResponse timeseries(@RequestParam(defaultValue = "30") int days) {
+        return dashboardService.timeseries(days);
     }
 }

@@ -22,7 +22,6 @@ import pl.smarthotel.pms.common.web.PageResponse;
 
 @RestController
 @RequestMapping(ApiPaths.ADMIN + "/room-types")
-@PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Admin — Room types")
 @SecurityRequirement(name = BEARER_JWT)
 public class RoomTypeController {
@@ -34,6 +33,7 @@ public class RoomTypeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     PageResponse<RoomTypeResponse> list(
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) String query,
@@ -43,17 +43,20 @@ public class RoomTypeController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     RoomTypeResponse get(@PathVariable long id) {
         return roomTypeService.get(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     RoomTypeResponse create(@Valid @RequestBody CreateRoomTypeRequest request) {
         return roomTypeService.create(request);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     RoomTypeResponse update(
             @PathVariable long id, @Valid @RequestBody UpdateRoomTypeRequest request) {
         return roomTypeService.update(id, request);
@@ -61,6 +64,7 @@ public class RoomTypeController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     void delete(@PathVariable long id) {
         roomTypeService.delete(id);
     }

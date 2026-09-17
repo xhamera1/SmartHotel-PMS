@@ -52,5 +52,15 @@ class DashboardApiIT {
         assertThat(body.currency()).isEqualTo("PLN");
         assertThat(body.occupancyToday()).isNotNull();
         assertThat(body.mtdRevenue()).isNotNull();
+
+        ResponseEntity<DashboardTimeseriesResponse> series = rest.exchange(
+                "/api/v1/admin/dashboard/timeseries?days=30",
+                HttpMethod.GET,
+                bearer(token),
+                DashboardTimeseriesResponse.class);
+        assertThat(series.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(series.getBody()).isNotNull();
+        assertThat(series.getBody().points()).hasSize(30);
+        assertThat(series.getBody().currency()).isEqualTo("PLN");
     }
 }

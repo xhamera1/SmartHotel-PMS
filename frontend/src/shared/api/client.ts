@@ -33,17 +33,13 @@ function applyAccessSession(data: TokenResponse): boolean {
 /** Silent refresh using the httpOnly refresh cookie (no body). Dedupes concurrent 401s. */
 export async function refreshAccessToken(): Promise<boolean> {
   try {
-    const { data } = await axios.post<TokenResponse>(
-      `${baseURL}/api/v1/auth/refresh`,
-      null,
-      {
-        withCredentials: true,
-        headers: {
-          Accept: 'application/json',
-          [REQUEST_ID_HEADER]: createRequestId(),
-        },
+    const { data } = await axios.post<TokenResponse>(`${baseURL}/api/v1/auth/refresh`, null, {
+      withCredentials: true,
+      headers: {
+        Accept: 'application/json',
+        [REQUEST_ID_HEADER]: createRequestId(),
       },
-    )
+    })
     return applyAccessSession(data)
   } catch {
     authSession.clear()

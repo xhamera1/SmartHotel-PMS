@@ -55,8 +55,9 @@ endpoint changes land here first.
 | `PUT /api/v1/admin/rate-calendar/{roomTypeCode}/{date}` | Manual price override → `source=MANUAL` (ADMIN) | 2 |
 | `DELETE /api/v1/admin/rate-calendar/{roomTypeCode}/{date}` | Remove manual override (ADMIN) | 2 |
 | `GET /api/v1/admin/dashboard/kpis` | Occupancy today, arrivals/departures, MTD revenue (both roles) | 2 |
-| `POST /api/v1/admin/pricing/refresh` | Trigger rate-calendar refresh via pricing service (ADMIN) | 8 |
-| `GET /api/v1/admin/pricing/demand-indicators?from&to` · `/events?from&to` · `/model` | Proxies to the pricing service for the admin UI (both roles) | 8 |
+| `GET /api/v1/admin/dashboard/timeseries?days` | 30-day occupancy + ADR series for charts (both roles) | 3 |
+| `POST /api/v1/admin/pricing/refresh` | Trigger rate-calendar refresh via pricing service (ADMIN; stub until Phase 8) | 8 |
+| `GET /api/v1/admin/pricing/demand-indicators?from&to` · `/events?from&to` | Proxies to the pricing service for the admin UI (both roles; empty until Phase 8) | 8 |
 
 ## Canonical payloads
 

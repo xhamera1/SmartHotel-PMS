@@ -1,0 +1,5 @@
+export { I18nProvider } from '@/shared/i18n/I18nProvider'
+export { useI18n } from '@/shared/i18n/useI18n'
+export { getMessages, interpolate, localeStore } from '@/shared/i18n/localeStore'
+export type { AppLocale, Messages } from '@/shared/i18n/messages'
+export { HOTEL_NAME } from '@/shared/i18n/messages'

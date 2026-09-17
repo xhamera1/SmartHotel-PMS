@@ -3,9 +3,11 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { refreshAccessToken } from '@/shared/api/client'
 import { authSession } from '@/shared/auth/session'
+import { useI18n } from '@/shared/i18n/useI18n'
 
 export function RequireAuth() {
   const location = useLocation()
+  const { t } = useI18n()
   const authenticated = useSyncExternalStore(
     authSession.subscribe,
     authSession.isAuthenticated,
@@ -31,7 +33,7 @@ export function RequireAuth() {
   if (hydrating && !authenticated) {
     return (
       <Box sx={{ py: 8, display: 'grid', placeItems: 'center' }}>
-        <CircularProgress aria-label="Restoring session" />
+        <CircularProgress aria-label={t.common.restoringSession} />
       </Box>
     )
   }

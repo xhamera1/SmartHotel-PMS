@@ -65,7 +65,7 @@ class SecurityMatrixIT {
         "GET,/api/v1/admin/reservations?page=0&size=5,200",
         "GET,/api/v1/admin/dashboard/kpis,200",
         "GET,/api/v1/admin/rate-calendar?roomTypeCode=STD&from=2026-10-01&to=2026-10-03,200",
-        "GET,/api/v1/admin/room-types?page=0&size=5,403",
+        "GET,/api/v1/admin/room-types?page=0&size=5,200",
         "PUT,/api/v1/admin/rate-calendar/STD/2026-10-01,403"
     })
     @WithMockUser(roles = "RECEPTIONIST")

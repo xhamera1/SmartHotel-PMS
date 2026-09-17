@@ -131,4 +131,18 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
             """)
     BigDecimal sumMtdRevenue(
             @Param("monthStart") LocalDate monthStart, @Param("monthEnd") LocalDate monthEnd);
+
+    @EntityGraph(attributePaths = {"room", "room.roomType"})
+    @Query(
+            """
+            SELECT r FROM ReservationEntity r
+            WHERE r.status IN (
+                    pl.smarthotel.pms.reservations.ReservationStatus.CONFIRMED,
+                    pl.smarthotel.pms.reservations.ReservationStatus.CHECKED_IN,
+                    pl.smarthotel.pms.reservations.ReservationStatus.CHECKED_OUT)
+              AND r.checkIn < :toExclusive
+              AND r.checkOut > :fromInclusive
+            """)
+    List<ReservationEntity> findForOccupancyWindow(
+            @Param("fromInclusive") LocalDate fromInclusive, @Param("toExclusive") LocalDate toExclusive);
 }

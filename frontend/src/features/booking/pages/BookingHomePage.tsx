@@ -1,20 +1,37 @@
-import { Box, Container, Typography } from '@mui/material'
-import { Link as RouterLink } from 'react-router-dom'
+import { Button, Stack, Typography } from '@mui/material'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { BookingLayout } from '@/features/booking/components/BookingLayout'
+import { SearchForm } from '@/features/booking/components/SearchForm'
+import type { SearchStayValues } from '@/features/booking/schemas/bookingSchemas'
+import { useI18n } from '@/shared/i18n/useI18n'
 
 export function BookingHomePage() {
+  const navigate = useNavigate()
+  const { t } = useI18n()
+
+  function onSearch(values: SearchStayValues) {
+    const params = new URLSearchParams({
+      checkIn: values.checkIn,
+      checkOut: values.checkOut,
+      guests: String(values.guests),
+    })
+    void navigate(`/booking?${params.toString()}`)
+  }
+
   return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
+    <BookingLayout>
       <Typography variant="h2" component="h1" gutterBottom>
-        SmartHotel
+        {t.booking.homeTitle}
       </Typography>
-      <Typography color="text.secondary" component="p" sx={{ mb: 2 }}>
-        Public booking flow scaffold — search, quote, and manage-by-code land in step 3.
+      <Typography color="text.secondary" sx={{ mb: 4, maxWidth: '36rem' }}>
+        {t.booking.homeSubtitle}
       </Typography>
-      <Box component="nav" aria-label="Booking shortcuts" sx={{ display: 'flex', gap: 2 }}>
-        <RouterLink to="/booking">Start booking</RouterLink>
-        <RouterLink to="/booking/manage">Manage booking</RouterLink>
-        <RouterLink to="/admin/login">Staff login</RouterLink>
-      </Box>
-    </Container>
+      <SearchForm onSubmit={onSearch} />
+      <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
+        <Button component={RouterLink} to="/booking/manage" variant="outlined">
+          {t.booking.manageCta}
+        </Button>
+      </Stack>
+    </BookingLayout>
   )
 }

@@ -26,12 +26,7 @@ export const authSession = {
   getFullName: () => fullName,
   isAuthenticated: () => Boolean(accessToken),
 
-  setSession(next: {
-    accessToken: string
-    role: StaffRole
-    email: string
-    fullName: string
-  }) {
+  setSession(next: { accessToken: string; role: StaffRole; email: string; fullName: string }) {
     accessToken = next.accessToken
     role = next.role
     email = next.email

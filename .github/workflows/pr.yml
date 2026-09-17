@@ -99,7 +99,7 @@ jobs:
           if-no-files-found: warn
 
   python:
-    name: pricing-service (lint + migrations)
+    name: pricing-service (lint + migrations + datagen tests)
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
@@ -131,6 +131,8 @@ jobs:
         run: uv run ruff check .
       - name: Ruff format check
         run: uv run ruff format --check .
+      - name: Datagen unit tests
+        run: uv run pytest -q
       - name: Migrations — upgrade, idempotent re-run, downgrade, re-upgrade
         env:
           PRICING_DATABASE_URL: postgresql+psycopg://postgres:ci@localhost:5432/pricing_ci
@@ -156,7 +158,7 @@ jobs:
           '
 
   frontend:
-    name: frontend (lint + typecheck + build)
+    name: frontend (lint + format + typecheck + test + build)
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -179,10 +181,21 @@ jobs:
         run: pnpm check:api
       - name: ESLint
         run: pnpm lint
+      - name: Prettier
+        run: pnpm format:check
       - name: Typecheck
         run: pnpm typecheck
+      - name: Unit tests with coverage
+        run: pnpm test
       - name: Production build
         run: pnpm build
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          if-no-files-found: warn
       - name: Upload dist
         if: success()
         uses: actions/upload-artifact@v4
