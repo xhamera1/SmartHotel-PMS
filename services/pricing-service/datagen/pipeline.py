@@ -1,4 +1,4 @@
-"""Datagen orchestration — calendar, events, demand & bookings."""
+"""Orchestration — calendar → events → demand → optimal prices → bookings."""
 
 from __future__ import annotations
 
@@ -33,7 +33,10 @@ def run_generation(
     events = generate_events(config, rng)
     datasets["events"] = events_to_frame(events)
     night_demands = build_night_demands(config, datasets["calendar"], events, rng)
-    datasets["nights"] = nights_to_frame(night_demands)
+    datasets["nights"] = nights_to_frame(
+        night_demands,
+        room_types=config.hotel.room_types,
+    )
     datasets["bookings"] = simulate_bookings(config, night_demands, rng)
     return write_dataset_bundle(
         config=config,

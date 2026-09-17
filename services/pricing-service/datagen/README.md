@@ -12,7 +12,7 @@ global `seed`, and writes parquet tables plus a JSON metadata sidecar under
 | 2 | Calendar factors | **done** |
 | 3 | Synthetic event catalog | **done** |
 | 4 | Demand & booking simulation | **done** |
-| 5 | Optimal-price target | pending |
+| 5 | Optimal-price target | **done** |
 | 6 | Training snapshots | pending |
 | 7 | EDA + pandera | pending |
 
@@ -51,4 +51,6 @@ Or from the repo root: `task datagen`.
 Step 2 fills `calendar.parquet`. Step 3 fills `events.parquet` (~60/year, template
 descriptions + `true_uplift` ground truth for Gemini E3). Step 4 fills `nights.parquet`
 (latent demand) and `bookings.parquet` (Poisson/gamma/logistic sim with capacity + cancels).
-`optimal_price` / `price_multiplier` stay NaN until step 5. Snapshots stay empty until step 6.
+Step 5 grid-searches `p* = argmax_p p · E[bookings(p)]` on the true demand curve within
+each room type's `[min_price, max_price]` (1 PLN step) and stores
+`price_multiplier = p* / base_price` (D7). Snapshots stay empty until step 6.

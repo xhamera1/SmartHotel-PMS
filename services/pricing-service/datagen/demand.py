@@ -1,4 +1,4 @@
-"""Latent nightly demand and booking-request simulation (Phase 4 step 4)."""
+"""Latent nightly demand, bookings, and revenue-optimal prices (Phase 4 steps 4–5)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
-from datagen.config import DatagenConfig
+from datagen.config import DatagenConfig, RoomTypeConfig
 from datagen.events import SyntheticEvent
 
 # Expected booking *attempts* per sellable room before calendar/event/noise scaling.
@@ -19,6 +19,9 @@ BASE_ATTEMPTS_PER_ROOM = 1.35
 # Stay-length distribution (nights): leisure city short stays.
 STAY_LENGTH_DAYS = (1, 2, 3, 4)
 STAY_LENGTH_PROBS = (0.45, 0.35, 0.15, 0.05)
+
+# Grid step (PLN) for p* search within [min_price, max_price] (ADR-0009 grosz via round).
+PRICE_GRID_STEP = 1.0
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,19 @@ class NightDemand:
     """Expected attempt intensity D = base × season × weekday × holiday × (1+event) × exp(ε)."""
     eps_total: float
     """ε = ε_obs + ε_latent (latent part is invisible to later ML features)."""
+
+    @property
+    def willingness_to_pay(self) -> float:
+        """True WTP under the simulator world state (includes latent ε)."""
+        event_mult = 1.0 + self.event_uplift
+        return float(
+            self.base_price
+            * self.season_factor
+            * self.weekday_factor
+            * self.holiday_factor
+            * event_mult
+            * math.exp(self.eps_total)
+        )
 
 
 def event_uplift_by_date(events: list[SyntheticEvent], day: date) -> float:
@@ -74,6 +90,84 @@ def conversion_probability(price: float, wtp: float, elasticity: float) -> float
         raise ValueError("elasticity must be positive")
     # P=0.5 when price=wtp; higher elasticity → sharper drop when price > wtp.
     return float(1.0 / (1.0 + math.exp(elasticity * (price - wtp) / wtp)))
+
+
+def expected_bookings_at_price(night: NightDemand, price: float) -> float:
+    """
+    Capacity-constrained expected sold rooms at ``price`` under the true demand.
+
+    E[bookings] ≈ min(rooms, D · π(price, WTP, elasticity)).
+    Cancellations are price-independent so they do not affect argmax_p.
+    """
+    pi = conversion_probability(price, night.willingness_to_pay, night.elasticity)
+    return float(min(night.rooms, night.demand_latent * pi))
+
+
+def expected_revenue_at_price(night: NightDemand, price: float) -> float:
+    """p · E[bookings(p)] — the objective maximized for the ML target (D7)."""
+    return float(price * expected_bookings_at_price(night, price))
+
+
+def price_grid(min_price: float, max_price: float, step: float = PRICE_GRID_STEP) -> np.ndarray:
+    """Inclusive PLN grid from min to max (last point always max_price)."""
+    if step <= 0:
+        raise ValueError("step must be positive")
+    if min_price > max_price:
+        raise ValueError("min_price must be ≤ max_price")
+    prices = np.arange(min_price, max_price + step * 0.5, step, dtype=np.float64)
+    if prices.size == 0 or prices[-1] < max_price - 1e-9:
+        prices = np.append(prices, max_price)
+    else:
+        prices[-1] = max_price
+    return np.round(prices, 2)
+
+
+def optimal_price_for_night(
+    night: NightDemand,
+    *,
+    min_price: float,
+    max_price: float,
+    step: float = PRICE_GRID_STEP,
+) -> tuple[float, float]:
+    """
+    Grid-search ``p* = argmax_p p · E[bookings(p)]`` in ``[min_price, max_price]``.
+
+    Returns ``(optimal_price, price_multiplier)`` with ``m* = p* / base_price``.
+    On revenue ties, the lower price wins (iterate ascending, strict ``>``).
+    """
+    if night.base_price <= 0:
+        raise ValueError("base_price must be positive")
+    best_price = float(min_price)
+    best_rev = expected_revenue_at_price(night, best_price)
+    for price in price_grid(min_price, max_price, step):
+        rev = expected_revenue_at_price(night, float(price))
+        if rev > best_rev:
+            best_rev = rev
+            best_price = float(price)
+    multiplier = best_price / night.base_price
+    return best_price, float(multiplier)
+
+
+def assign_optimal_prices(
+    nights: list[NightDemand],
+    room_types: list[RoomTypeConfig],
+    *,
+    step: float = PRICE_GRID_STEP,
+) -> list[tuple[float, float]]:
+    """Per-night ``(p*, m*)`` using each room type's min/max guardrails."""
+    by_code = {rt.code: rt for rt in room_types}
+    out: list[tuple[float, float]] = []
+    for night in nights:
+        rt = by_code[night.room_type]
+        out.append(
+            optimal_price_for_night(
+                night,
+                min_price=rt.min_price,
+                max_price=rt.max_price,
+                step=step,
+            )
+        )
+    return out
 
 
 def build_night_demands(
@@ -120,7 +214,16 @@ def build_night_demands(
     return nights
 
 
-def nights_to_frame(nights: list[NightDemand]) -> pd.DataFrame:
+def nights_to_frame(
+    nights: list[NightDemand],
+    *,
+    room_types: list[RoomTypeConfig] | None = None,
+    step: float = PRICE_GRID_STEP,
+) -> pd.DataFrame:
+    """
+    Nightly demand table. When ``room_types`` is provided, fills ``optimal_price``
+    and ``price_multiplier`` via revenue grid search (step 5 / D7).
+    """
     if not nights:
         return pd.DataFrame(
             {
@@ -134,6 +237,14 @@ def nights_to_frame(nights: list[NightDemand]) -> pd.DataFrame:
             }
         )
 
+    if room_types is None:
+        optimal_prices = [float("nan")] * len(nights)
+        multipliers = [float("nan")] * len(nights)
+    else:
+        optima = assign_optimal_prices(nights, room_types, step=step)
+        optimal_prices = [p for p, _ in optima]
+        multipliers = [m for _, m in optima]
+
     return pd.DataFrame(
         {
             "date": pd.to_datetime([n.day for n in nights]),
@@ -141,9 +252,8 @@ def nights_to_frame(nights: list[NightDemand]) -> pd.DataFrame:
             "base_price": [n.base_price for n in nights],
             "demand_latent": [n.demand_latent for n in nights],
             "event_uplift": [n.event_uplift for n in nights],
-            # Filled in step 5 (optimal-price grid search).
-            "optimal_price": np.nan,
-            "price_multiplier": np.nan,
+            "optimal_price": optimal_prices,
+            "price_multiplier": multipliers,
         }
     )
 
@@ -183,17 +293,8 @@ def simulate_bookings(
 
             # WTP shares multiplicative world state (incl. ε) so high-demand nights
             # also tolerate higher prices; quoted price is BAR = base_price.
-            event_mult = 1.0 + night.event_uplift
-            wtp = (
-                night.base_price
-                * night.season_factor
-                * night.weekday_factor
-                * night.holiday_factor
-                * event_mult
-                * math.exp(night.eps_total)
-            )
             price = night.base_price
-            p_book = conversion_probability(price, wtp, night.elasticity)
+            p_book = conversion_probability(price, night.willingness_to_pay, night.elasticity)
             if rng.random() > p_book:
                 continue
 
