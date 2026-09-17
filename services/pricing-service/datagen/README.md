@@ -1,8 +1,8 @@
 # Synthetic dataset generator (Phase 4)
 
 Config-driven CLI that validates Appendix C YAML (Pydantic), seeds RNGs from a single
-global `seed`, and writes parquet tables plus a JSON metadata sidecar under
-`artifacts/datasets/` (git-ignored).
+global `seed`, writes parquet tables plus JSON metadata, and enforces **pandera** data
+contracts on every emit. EDA figures via `datagen eda` / notebook.
 
 ## Status
 
@@ -14,7 +14,7 @@ global `seed`, and writes parquet tables plus a JSON metadata sidecar under
 | 4 | Demand & booking simulation | **done** |
 | 5 | Optimal-price target | **done** |
 | 6 | Training snapshots | **done** |
-| 7 | EDA + pandera | pending |
+| 7 | EDA + pandera | **done** |
 
 ## Usage
 
@@ -25,38 +25,36 @@ uv sync
 uv run python -m datagen run \
   --config datagen/configs/default.yaml \
   --output ../../artifacts/datasets/default
+
+uv run python -m datagen eda \
+  --config datagen/configs/default.yaml \
+  --input ../../artifacts/datasets/default \
+  --figures ../../artifacts/eda/default
 ```
 
-Tiny fixture config (for tests / later golden hashes):
+Tiny fixture:
 
 ```bash
-uv run python -m datagen run \
-  --config datagen/configs/tiny.yaml \
-  --output ../../artifacts/datasets/tiny
+task datagen:tiny
 ```
 
-Or from the repo root: `task datagen`.
+Or from the repo root: `task datagen` then `task datagen:eda`.
+
+Interactive notebook: `notebooks/eda_datagen.ipynb`.
+
+Dataset specification: [`docs/qa/dataset-spec.md`](../../../docs/qa/dataset-spec.md).
 
 ## Outputs
 
 | File | Role |
 |------|------|
-| `calendar.parquet` | Nightly season / weekday / holiday / bridge factors (step 2) |
-| `events.parquet` | Synthetic events + true uplift (step 3) |
-| `nights.parquet` | Per (date, room type) demand / optimal price (steps 4–5) |
-| `bookings.parquet` | Simulated bookings (step 4) |
-| `snapshots.parquet` | Lead-time training rows (step 6) |
-| `metadata.json` | `config_hash`, `seed`, `row_counts`, file map |
+| `calendar.parquet` | Nightly season / weekday / holiday / bridge factors |
+| `events.parquet` | Synthetic events + true uplift |
+| `nights.parquet` | Per (date, room type) demand / optimal price |
+| `bookings.parquet` | Simulated bookings |
+| `snapshots.parquet` | Lead-time training rows |
+| `validation_report.json` | Pandera pass/fail per table |
+| `metadata.json` | `config_hash`, `seed`, `row_counts`, validation status |
 
-Step 2 fills `calendar.parquet`. Step 3 fills `events.parquet` (~60/year, template
-descriptions + `true_uplift` ground truth for Gemini E3). Step 4 fills `nights.parquet`
-(latent demand) and `bookings.parquet` (Poisson/gamma/logistic sim with capacity + cancels).
-Step 5 grid-searches `p* = argmax_p p · E[bookings(p)]` on the true demand curve within
-each room type's `[min_price, max_price]` (1 PLN step) and stores
-`price_multiplier = p* / base_price` (D7).
-
-Step 6 emits one training row per `(stay_date, room_type, lead_time)` for configured leads
-(default 60/30/14/7/1). Features obey the information-set rule: `occupancy_so_far` /
-`rooms_remaining` count only bookings with `booked_at ≤ snapshot_date`; calendar factors and
-`event_uplift_known` are stay-night public-calendar features; target is the night's
-`price_multiplier`. Default size ≈ 3 × 365 × 3 × 5 ≈ 16–20 k rows.
+Default snapshot size ≈ 3 × 365 × 3 × 5 ≈ **16 440** rows. Generation fails loudly if any
+pandera contract is violated.

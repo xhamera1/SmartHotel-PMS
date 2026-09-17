@@ -94,10 +94,7 @@ def build_snapshots(
 
     cal = calendar.copy()
     cal["date_key"] = pd.to_datetime(cal["date"]).dt.date
-    cal_by_date = {
-        row.date_key: row
-        for row in cal.itertuples(index=False)
-    }
+    cal_by_date = {row.date_key: row for row in cal.itertuples(index=False)}
 
     # Event uplift is a stay-night calendar feature (announced publicly).
     uplift_cache: dict[date, float] = {}

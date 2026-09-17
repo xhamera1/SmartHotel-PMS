@@ -13,10 +13,16 @@ dependencies = [
     "pyarrow>=25.0.1",
     "numpy>=2.5.3",
     "holidays>=0.104",
+    "pandera>=0.33.1",
+    "matplotlib>=3.11.2",
+    "seaborn>=0.13.2",
+    "statsmodels>=0.15.0",
 ]
 
 [dependency-groups]
 dev = [
+    "jupyter>=1.1.1",
+    "nbconvert>=7.17.1",
     "pytest>=9.1.1",
     "ruff>=0.12",
 ]

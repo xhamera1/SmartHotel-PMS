@@ -103,7 +103,7 @@ tasks:
         platforms: [linux, darwin]
 
   test:python:
-    desc: pricing-service unit tests (datagen config/CLI; expands in Phase 4+)
+    desc: pricing-service unit tests (datagen + pandera + EDA)
     dir: services/pricing-service
     cmds:
       - uv run pytest -q
@@ -113,6 +113,19 @@ tasks:
     dir: services/pricing-service
     cmds:
       - uv run python -m datagen run --config datagen/configs/default.yaml --output ../../artifacts/datasets/default
+
+  datagen:eda:
+    desc: Render Phase-4 EDA figures from artifacts/datasets/default
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m datagen eda --config datagen/configs/default.yaml --input ../../artifacts/datasets/default --figures ../../artifacts/eda/default
+
+  datagen:tiny:
+    desc: Generate tiny fixture dataset + EDA figures (tests / quick look)
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m datagen run --config datagen/configs/tiny.yaml --output ../../artifacts/datasets/tiny
+      - uv run python -m datagen eda --config datagen/configs/tiny.yaml --input ../../artifacts/datasets/tiny --figures ../../artifacts/eda/tiny
 
   run:pms:
     desc: Start pms-core locally (dev profile, Compose PostgreSQL)

@@ -112,8 +112,8 @@ def test_snapshot_row_count_and_bounds(tiny_config: DatagenConfig) -> None:
     assert set(snaps["lead_time_days"]) == set(tiny_config.snapshots.lead_times_days)
 
     # snapshot_date = stay_date - lead_time
-    derived = (
-        pd.to_datetime(snaps["stay_date"]) - pd.to_timedelta(snaps["lead_time_days"], unit="D")
+    derived = pd.to_datetime(snaps["stay_date"]) - pd.to_timedelta(
+        snaps["lead_time_days"], unit="D"
     )
     assert (derived == pd.to_datetime(snaps["snapshot_date"])).all()
 
@@ -153,8 +153,8 @@ def test_cli_writes_snapshots(tmp_path: Path, tiny_config: DatagenConfig) -> Non
     assert main(["run", "--config", str(CONFIGS / "tiny.yaml"), "--output", str(output)]) == 0
     snaps = pd.read_parquet(output / "snapshots.parquet")
     n_days = (tiny_config.horizon.end - tiny_config.horizon.start).days + 1
-    expected = n_days * len(tiny_config.hotel.room_types) * len(
-        tiny_config.snapshots.lead_times_days
+    expected = (
+        n_days * len(tiny_config.hotel.room_types) * len(tiny_config.snapshots.lead_times_days)
     )
     assert len(snaps) == expected
     assert set(snaps.columns) >= set(

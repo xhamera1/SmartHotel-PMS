@@ -1,4 +1,4 @@
-"""Write parquet tables and the JSON metadata sidecar."""
+"""Write parquet tables, pandera validation report, and JSON metadata sidecar."""
 
 from __future__ import annotations
 
@@ -11,14 +11,17 @@ import pandas as pd
 
 from datagen.config import DatagenConfig
 from datagen.tables import DATASET_NAMES
+from datagen.validate import DatasetValidationError, ValidationReport, validate_datasets
 
 
 @dataclass(frozen=True)
 class WriteResult:
     output_dir: Path
     metadata_path: Path
+    validation_path: Path
     row_counts: dict[str, int]
     config_hash: str
+    validation: ValidationReport
 
 
 def write_dataset_bundle(
@@ -36,6 +39,13 @@ def write_dataset_bundle(
         msg = f"missing datasets: {missing}"
         raise KeyError(msg)
 
+    validation_path = output_dir / "validation_report.json"
+    try:
+        validation = validate_datasets(datasets)
+    except DatasetValidationError as exc:
+        exc.report.write_json(validation_path)
+        raise
+
     row_counts: dict[str, int] = {}
     files: dict[str, str] = {}
     for name in DATASET_NAMES:
@@ -44,6 +54,8 @@ def write_dataset_bundle(
         datasets[name].to_parquet(path, index=False)
         row_counts[name] = int(len(datasets[name]))
         files[name] = filename
+
+    validation.write_json(validation_path)
 
     metadata = {
         "generator_version": generator_version,
@@ -57,6 +69,8 @@ def write_dataset_bundle(
         },
         "row_counts": row_counts,
         "files": files,
+        "validation_status": validation.status,
+        "validation_report": validation_path.name,
     }
     metadata_path = output_dir / "metadata.json"
     metadata_path.write_text(
@@ -66,6 +80,8 @@ def write_dataset_bundle(
     return WriteResult(
         output_dir=output_dir,
         metadata_path=metadata_path,
+        validation_path=validation_path,
         row_counts=row_counts,
         config_hash=metadata["config_hash"],
+        validation=validation,
     )

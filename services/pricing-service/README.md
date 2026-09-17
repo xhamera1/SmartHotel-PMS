@@ -12,7 +12,7 @@ via Alembic. Internal-only API (`X-Internal-Api-Key`), consumed by `pms-core`.
 | `domain/` | Pricing domain logic: clamping, rounding, factors | Phase 6 |
 | `ml/` | Feature engineering, training pipeline, evaluation, model registry | Phase 5 |
 | `events/` | Event providers (Ticketmaster/static), Gemini client, scoring, aggregation | Phase 7 |
-| `datagen/` | Synthetic dataset generator (CLI) | Phase 4 (step 1: config + IO) |
+| `datagen/` | Synthetic dataset generator (CLI + pandera + EDA) | Phase 4 |
 | `tests/` | pytest suite: unit, integration (Testcontainers), contract | Phases 4–7 |
 | `migrations/` | Alembic migrations for the `pricing` schema (**present**) | Phase 1 |
 
