@@ -9,7 +9,7 @@ global `seed`, and writes parquet tables plus a JSON metadata sidecar under
 | Step | Content | Status |
 |------|---------|--------|
 | 1 | Config + CLI + empty typed parquet + metadata | **done** |
-| 2 | Calendar factors | pending |
+| 2 | Calendar factors | **done** |
 | 3 | Synthetic event catalog | pending |
 | 4 | Demand & booking simulation | pending |
 | 5 | Optimal-price target | pending |
@@ -41,10 +41,11 @@ Or from the repo root: `task datagen`.
 
 | File | Role |
 |------|------|
+| `calendar.parquet` | Nightly season / weekday / holiday / bridge factors (step 2) |
 | `events.parquet` | Synthetic events + true uplift (step 3) |
 | `nights.parquet` | Per (date, room type) demand / optimal price (steps 4–5) |
 | `bookings.parquet` | Simulated bookings (step 4) |
 | `snapshots.parquet` | Lead-time training rows (step 6) |
 | `metadata.json` | `config_hash`, `seed`, `row_counts`, file map |
 
-Step 1 writes **empty typed frames** so the IO contract is exercised before simulation lands.
+Step 2 fills `calendar.parquet`. Remaining tables stay empty typed frames until later steps.

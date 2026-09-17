@@ -1,4 +1,4 @@
-"""Column contracts for datagen parquet outputs (filled in later Phase 4 steps)."""
+"""Column contracts for datagen parquet outputs (filled across Phase 4 steps)."""
 
 from __future__ import annotations
 
@@ -14,6 +14,16 @@ EVENTS_COLUMNS: dict[str, str] = {
     "attendance": "int64",
     "distance_km": "float64",
     "true_uplift": "float64",
+}
+
+CALENDAR_COLUMNS: dict[str, str] = {
+    "date": "datetime64[ns]",
+    "season_factor": "float64",
+    "weekday_factor": "float64",
+    "holiday_flag": "int64",
+    "bridge_flag": "int64",
+    "holiday_factor": "float64",
+    "calendar_factor": "float64",
 }
 
 NIGHTS_COLUMNS: dict[str, str] = {
@@ -51,7 +61,7 @@ SNAPSHOTS_COLUMNS: dict[str, str] = {
     "price_multiplier": "float64",
 }
 
-DATASET_NAMES = ("events", "nights", "bookings", "snapshots")
+DATASET_NAMES = ("calendar", "events", "nights", "bookings", "snapshots")
 
 
 def empty_frame(columns: dict[str, str]) -> pd.DataFrame:
@@ -61,6 +71,7 @@ def empty_frame(columns: dict[str, str]) -> pd.DataFrame:
 
 def empty_datasets() -> dict[str, pd.DataFrame]:
     return {
+        "calendar": empty_frame(CALENDAR_COLUMNS),
         "events": empty_frame(EVENTS_COLUMNS),
         "nights": empty_frame(NIGHTS_COLUMNS),
         "bookings": empty_frame(BOOKINGS_COLUMNS),

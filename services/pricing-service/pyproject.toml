@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=3.0.5",
     "pyarrow>=25.0.1",
     "numpy>=2.5.3",
+    "holidays>=0.104",
 ]
 
 [dependency-groups]

@@ -55,16 +55,15 @@ def test_cli_run_writes_parquet_and_metadata(tmp_path: Path) -> None:
     code = main(["run", "--config", str(CONFIGS / "tiny.yaml"), "--output", str(output)])
     assert code == 0
 
-    for name in ("events", "nights", "bookings", "snapshots"):
+    for name in ("calendar", "events", "nights", "bookings", "snapshots"):
         assert (output / f"{name}.parquet").is_file()
 
     meta = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
     assert meta["seed"] == 7
     assert meta["config_hash"] == DatagenConfig.from_yaml(CONFIGS / "tiny.yaml").config_hash()
-    assert meta["row_counts"] == {
-        "events": 0,
-        "nights": 0,
-        "bookings": 0,
-        "snapshots": 0,
-    }
-    assert set(meta["files"]) == {"events", "nights", "bookings", "snapshots"}
+    assert meta["row_counts"]["calendar"] == 14
+    assert meta["row_counts"]["events"] == 0
+    assert meta["row_counts"]["nights"] == 0
+    assert meta["row_counts"]["bookings"] == 0
+    assert meta["row_counts"]["snapshots"] == 0
+    assert set(meta["files"]) == {"calendar", "events", "nights", "bookings", "snapshots"}
