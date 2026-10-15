@@ -11,6 +11,8 @@ RUN uv sync --locked --no-dev --no-install-project
 COPY app ./app
 COPY domain ./domain
 COPY ml ./ml
+COPY events ./events
+COPY prompts ./prompts
 COPY fixtures ./fixtures
 COPY migrations ./migrations
 COPY alembic.ini ./

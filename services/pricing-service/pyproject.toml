@@ -23,6 +23,7 @@ dependencies = [
     "uvicorn[standard]>=0.34",
     "pydantic-settings>=2.0",
     "httpx>=0.28",
+    "google-genai>=1.0",
 ]
 
 [dependency-groups]
@@ -35,6 +36,7 @@ dev = [
     "ruff>=0.12",
     "schemathesis>=3.0",
     "testcontainers[postgres]>=4.0",
+    "respx>=0.22",
 ]
 
 # Not an installable package (yet) - uv manages the environment only.
@@ -69,4 +71,5 @@ asyncio_mode = "auto"
 markers = [
     "integration: tests that require Docker/testcontainers",
     "benchmark: informational performance benchmarks",
+    "external: tests requiring real external API keys (Ticketmaster, Gemini)",
 ]

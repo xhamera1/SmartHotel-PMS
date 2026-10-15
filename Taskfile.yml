@@ -103,10 +103,16 @@ tasks:
         platforms: [linux, darwin]
 
   test:python:
-    desc: pricing-service unit/API tests (skip Docker integration by default)
+    desc: pricing-service unit/API tests (skip Docker integration/benchmark/external)
     dir: services/pricing-service
     cmds:
-      - uv run pytest -q -m "not integration and not benchmark"
+      - uv run pytest -q -m "not integration and not benchmark and not external"
+
+  events:sync:
+    desc: Run the event ingestion + scoring pipeline (uses EVENT_PROVIDER env var)
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m events.sync
 
   run:pricing:
     desc: Start pricing-service (uvicorn) on :8081

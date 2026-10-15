@@ -132,8 +132,8 @@ jobs:
         run: uv run ruff check .
       - name: Ruff format check
         run: uv run ruff format --check .
-      - name: Unit + API tests (exclude slow integration/benchmark)
-        run: uv run pytest -q -m "not integration and not benchmark"
+      - name: Unit + API tests (exclude slow integration/benchmark/external)
+        run: uv run pytest -q -m "not integration and not benchmark and not external"
       - name: OpenAPI export drift check (D19)
         run: |
           uv run python -m app.export_openapi ../../docs/api/pricing-openapi.json

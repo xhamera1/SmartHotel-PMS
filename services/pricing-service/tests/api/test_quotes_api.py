@@ -183,10 +183,11 @@ async def test_model_not_loaded_returns_503(fixture_model, mock_engine) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events_sync_stub(client, auth_headers) -> None:
+async def test_events_sync_endpoint(client, auth_headers) -> None:
     response = await client.post("/internal/events/sync", headers=auth_headers)
     assert response.status_code == 202
-    assert "Phase 7" in response.json()["detail"]
+    body = response.json()
+    assert body["status"] == "accepted"
 
 
 @pytest.mark.asyncio

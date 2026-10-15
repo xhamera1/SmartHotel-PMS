@@ -64,6 +64,14 @@ services:
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal-api-key}
       MODEL_ARTIFACT_DIR: /app/fixtures/models/tiny
       ALLOW_FIXTURE_MODEL: "true"
+      EVENT_PROVIDER: ${EVENT_PROVIDER:-static}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY:-}
+      HOTEL_LAT: ${HOTEL_LAT:-50.068369}
+      HOTEL_LON: ${HOTEL_LON:-19.924854}
+      EVENT_RADIUS_KM: ${EVENT_RADIUS_KM:-15}
+      EVENT_HORIZON_DAYS: ${EVENT_HORIZON_DAYS:-120}
       TZ: Europe/Warsaw
     ports:
       - "${PRICING_HOST_PORT:-8081}:8081"

@@ -34,6 +34,18 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0", alias="PRICING_HOST")
     port: int = Field(default=8081, alias="PRICING_PORT")
 
+    # --- Event intelligence (Phase 7) ---
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
+    prompt_version: str = Field(default="event-impact-v1", alias="PROMPT_VERSION")
+    gemini_daily_call_budget: int = Field(default=200, alias="GEMINI_DAILY_CALL_BUDGET")
+    ticketmaster_api_key: str = Field(default="", alias="TICKETMASTER_API_KEY")
+    event_provider: str = Field(default="static", alias="EVENT_PROVIDER")
+    hotel_lat: float = Field(default=50.068369, alias="HOTEL_LAT")
+    hotel_lon: float = Field(default=19.924854, alias="HOTEL_LON")
+    event_radius_km: float = Field(default=15.0, alias="EVENT_RADIUS_KM")
+    event_horizon_days: int = Field(default=120, alias="EVENT_HORIZON_DAYS")
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -1,0 +1,57 @@
+# =============================================================================
+# SmartHotel-PMS — live smoke test for real Ticketmaster + Gemini APIs.
+# Manually triggered, requires TICKETMASTER_API_KEY and GEMINI_API_KEY secrets.
+# =============================================================================
+name: Live Smoke (Event APIs)
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Event provider to use"
+        required: false
+        default: "ticketmaster"
+        type: choice
+        options:
+          - ticketmaster
+          - static
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    name: Live API smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/pricing-service
+    env:
+      TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      EVENT_PROVIDER: ${{ inputs.provider }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/pricing-service/uv.lock
+
+      - name: Install dependencies (locked)
+        run: uv sync --locked
+
+      - name: Run live smoke tests (external marker)
+        run: |
+          uv run pytest tests/events/test_live_smoke.py \
+            -v --tb=short -m external \
+            --junit-xml=../../tmp/live-smoke-results.xml
+
+      - name: Upload smoke test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-smoke-results
+          path: tmp/live-smoke-results.xml
+          if-no-files-found: warn

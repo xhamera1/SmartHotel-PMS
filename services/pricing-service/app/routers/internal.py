@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Request
 
 from app.schemas import EventsSyncResponse, HealthResponse
 from app.services.model_loader import load_active_model
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/internal", tags=["Internal"])
 
@@ -24,9 +28,33 @@ def reload_model(request: Request) -> HealthResponse:
     return HealthResponse(status="UP")
 
 
+async def _run_event_sync(engine, settings) -> None:  # noqa: ANN001
+    """Background task: run the full event sync pipeline."""
+    try:
+        from events.sync import run_sync
+
+        result = await run_sync(engine, settings)
+        logger.info("Event sync completed: %s", result)
+    except Exception:
+        logger.exception("Event sync failed")
+
+
 @router.post("/events/sync", response_model=EventsSyncResponse, status_code=202)
-def sync_events() -> EventsSyncResponse:
+async def sync_events(
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> EventsSyncResponse:
+    engine = request.app.state.engine
+    settings = request.app.state.settings
+
+    if engine is None:
+        return EventsSyncResponse(
+            status="rejected",
+            detail="Database not available",
+        )
+
+    background_tasks.add_task(_run_event_sync, engine, settings)
     return EventsSyncResponse(
         status="accepted",
-        detail="Event sync is implemented in Phase 7; no-op stub in Phase 6",
+        detail="Event sync pipeline started in background",
     )
