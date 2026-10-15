@@ -10,20 +10,26 @@ event API and scored for impact by the Google Gemini LLM.
 
 ## Architecture at a glance
 
-| Component | Technology | Responsibility |
-|-----------|------------|----------------|
-| `services/pms-core` | Java 21 · Spring Boot · Maven | Reservations, rooms, guests, auth, rate calendar |
-| `services/pricing-service` | Python 3.12 · FastAPI · scikit-learn · uv | ML price serving, training, event ingestion, Gemini scoring |
-| `frontend` | React · TypeScript · Vite | Admin panel + public booking SPA |
-| Database | PostgreSQL 17 (schemas `pms` / `pricing`) | Persistence, DB-level booking integrity |
-| Delivery & QA | Docker Compose · GitHub Actions · JUnit/pytest/Playwright/k6 | CI/CD with embedded quality gates |
-| Observability | Elasticsearch · Kibana · Filebeat | Structured logs, cross-service tracing |
+
+| Component                  | Technology                                                   | Responsibility                                              |
+| -------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- |
+| `services/pms-core`        | Java 21 · Spring Boot · Maven                                | Reservations, rooms, guests, auth, rate calendar            |
+| `services/pricing-service` | Python 3.12 · FastAPI · scikit-learn · uv                    | ML price serving, training, event ingestion, Gemini scoring |
+| `frontend`                 | React · TypeScript · Vite                                    | Admin panel + public booking SPA                            |
+| Database                   | PostgreSQL 17 (schemas `pms` / `pricing`)                    | Persistence, DB-level booking integrity                     |
+| Delivery & QA              | Docker Compose · GitHub Actions · JUnit/pytest/Playwright/k6 | CI/CD with embedded quality gates                           |
+| Observability              | Elasticsearch · Kibana · Filebeat                            | Structured logs, cross-service tracing                      |
+
+
+
 
 ## Documentation
 
 - **[Thesis project description](docs/thesis_project_description.md)** — scope and goals.
 - **[Domain glossary](docs/glossary.md)** — the ubiquitous language used in code, schemas, and APIs.
 - `docs/adr/` — Architecture Decision Records (design decisions with rationale).
+
+
 
 ## Repository layout
 
@@ -40,6 +46,8 @@ tools/                cross-platform developer scripts
 .github/workflows/    CI/CD pipelines (GitHub Actions)
 ```
 
+
+
 ## Project status
 
 Foundation complete: repository governance, CI pipeline bootstrap, and containerized
@@ -51,13 +59,15 @@ pricing service and remaining Track B phases follow.
 
 Prerequisites (pinned toolchain):
 
-| Tool | Pinned | Notes |
-|------|--------|-------|
-| JDK | 21 LTS (any OpenJDK build; CI uses Temurin 21) | Maven Wrapper in `services/pms-core` pins Maven 3.9.16 — no global Maven |
-| Python | 3.12 (`.python-version`, managed by [uv](https://docs.astral.sh/uv/)) | system Python is not used |
-| Node | 24 LTS (`.node-version`) + pnpm | |
-| Docker | Docker Desktop with WSL2 backend | |
-| [Task](https://taskfile.dev) | 3.x (optional) | nice shortcuts; if Windows blocks `task.exe`, use the Compose/Maven commands below |
+
+| Tool                         | Pinned                                                                | Notes                                                                              |
+| ---------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| JDK                          | 21 LTS (any OpenJDK build; CI uses Temurin 21)                        | Maven Wrapper in `services/pms-core` pins Maven 3.9.16 — no global Maven           |
+| Python                       | 3.12 (`.python-version`, managed by [uv](https://docs.astral.sh/uv/)) | system Python is not used                                                          |
+| Node                         | 24 LTS (`.node-version`) + pnpm                                       |                                                                                    |
+| Docker                       | Docker Desktop with WSL2 backend                                      |                                                                                    |
+| [Task](https://taskfile.dev) | 3.x (optional)                                                        | nice shortcuts; if Windows blocks `task.exe`, use the Compose/Maven commands below |
+
 
 ```powershell
 # --- preferred if Task works ---
@@ -87,4 +97,4 @@ To stop Postgres later:
 
 ## License
 
-[MIT](LICENSE) — © 2026 Patryk Chamera.
+[MIT](LICENSE) — © 2026 Patryk Chamera

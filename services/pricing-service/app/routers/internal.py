@@ -8,6 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, Request
 
 from app.schemas import EventsSyncResponse, HealthResponse
 from app.services.model_loader import load_active_model
+from app.settings import DEFAULT_FIXTURE_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ def reload_model(request: Request) -> HealthResponse:
     settings = request.app.state.settings
     state = load_active_model(
         request.app.state.engine,
-        fixture_dir=settings.model_artifact_dir,
+        fixture_dir=DEFAULT_FIXTURE_MODEL,
         allow_fixture=settings.allow_fixture_model,
     )
     request.app.state.model_holder.set(state)

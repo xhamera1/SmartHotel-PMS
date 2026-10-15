@@ -14,7 +14,7 @@ from app.middleware.auth import InternalApiKeyMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import demand, events, health, internal, model, quotes
 from app.services.model_loader import ModelHolder, ModelState, load_active_model
-from app.settings import Settings, get_settings
+from app.settings import DEFAULT_FIXTURE_MODEL, Settings, get_settings
 
 
 def create_app(
@@ -48,7 +48,7 @@ def create_app(
             try:
                 state = load_active_model(
                     active_engine,
-                    fixture_dir=settings_local.model_artifact_dir,
+                    fixture_dir=DEFAULT_FIXTURE_MODEL,
                     allow_fixture=settings_local.allow_fixture_model,
                 )
                 holder.set(state)
