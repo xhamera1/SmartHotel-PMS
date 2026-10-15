@@ -1,0 +1,699 @@
+{
+  "components": {
+    "schemas": {
+      "DemandIndicatorItem": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "indicator": {
+            "title": "Indicator",
+            "type": "integer"
+          },
+          "topEventIds": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Topeventids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date",
+          "indicator"
+        ],
+        "title": "DemandIndicatorItem",
+        "type": "object"
+      },
+      "DemandIndicatorsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DemandIndicatorItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DemandIndicatorsResponse",
+        "type": "object"
+      },
+      "EventItem": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "distanceKm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancekm"
+          },
+          "endsAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endsat"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "impactScore": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impactscore"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "startsAt": {
+            "title": "Startsat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "startsAt"
+        ],
+        "title": "EventItem",
+        "type": "object"
+      },
+      "EventsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EventItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "EventsResponse",
+        "type": "object"
+      },
+      "EventsSyncResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "detail"
+        ],
+        "title": "EventsSyncResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "ModelInfoResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "featureSchemaHash": {
+            "title": "Featureschemahash",
+            "type": "string"
+          },
+          "isReady": {
+            "title": "Isready",
+            "type": "boolean"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "trainedAt": {
+            "title": "Trainedat",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "trainedAt",
+          "featureSchemaHash",
+          "metrics",
+          "isReady"
+        ],
+        "title": "ModelInfoResponse",
+        "type": "object"
+      },
+      "QuoteItemRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "basePrice": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Baseprice"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "leadTimeDays": {
+            "minimum": 0.0,
+            "title": "Leadtimedays",
+            "type": "integer"
+          },
+          "maxPrice": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Maxprice"
+          },
+          "minPrice": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Minprice"
+          },
+          "occupancyRate": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Occupancyrate",
+            "type": "number"
+          },
+          "roomTypeCode": {
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Roomtypecode",
+            "type": "string"
+          },
+          "roomsRemaining": {
+            "minimum": 0.0,
+            "title": "Roomsremaining",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "roomTypeCode",
+          "date",
+          "basePrice",
+          "minPrice",
+          "maxPrice",
+          "occupancyRate",
+          "roomsRemaining",
+          "leadTimeDays"
+        ],
+        "title": "QuoteItemRequest",
+        "type": "object"
+      },
+      "QuoteItemResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "demandIndicator": {
+            "title": "Demandindicator",
+            "type": "integer"
+          },
+          "factors": {
+            "additionalProperties": true,
+            "title": "Factors",
+            "type": "object"
+          },
+          "modelVersion": {
+            "title": "Modelversion",
+            "type": "string"
+          },
+          "multiplier": {
+            "title": "Multiplier",
+            "type": "number"
+          },
+          "price": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price",
+            "type": "string"
+          },
+          "roomTypeCode": {
+            "title": "Roomtypecode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "roomTypeCode",
+          "date",
+          "price",
+          "multiplier",
+          "demandIndicator",
+          "factors",
+          "modelVersion"
+        ],
+        "title": "QuoteItemResponse",
+        "type": "object"
+      },
+      "QuotesRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "const": "PLN",
+            "default": "PLN",
+            "title": "Currency",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteItemRequest"
+            },
+            "maxItems": 400,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "items"
+        ],
+        "title": "QuotesRequest",
+        "type": "object"
+      },
+      "QuotesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "modelVersion": {
+            "title": "Modelversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "modelVersion",
+          "items"
+        ],
+        "title": "QuotesResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Internal pricing microservice. Error contract: RFC 7807 `application/problem+json` (https://smarthotel/problems/\u2026).",
+    "title": "SmartHotel Pricing Service API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/demand-indicators": {
+      "get": {
+        "operationId": "demand_indicators_api_v1_demand_indicators_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandIndicatorsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demand Indicators",
+        "tags": [
+          "Demand"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "list_events_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Events",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/api/v1/model": {
+      "get": {
+        "operationId": "model_info_api_v1_model_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelInfoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Model Info",
+        "tags": [
+          "Model"
+        ]
+      }
+    },
+    "/api/v1/quotes": {
+      "post": {
+        "operationId": "create_quotes_api_v1_quotes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Quotes",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/internal/events/sync": {
+      "post": {
+        "operationId": "sync_events_internal_events_sync_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsSyncResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sync Events",
+        "tags": [
+          "Internal"
+        ]
+      }
+    },
+    "/internal/model/reload": {
+      "post": {
+        "operationId": "reload_model_internal_model_reload_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reload Model",
+        "tags": [
+          "Internal"
+        ]
+      }
+    }
+  }
+}

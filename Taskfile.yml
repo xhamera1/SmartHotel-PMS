@@ -103,10 +103,22 @@ tasks:
         platforms: [linux, darwin]
 
   test:python:
-    desc: pricing-service unit tests (datagen + pandera + EDA + ML)
+    desc: pricing-service unit/API tests (skip Docker integration by default)
     dir: services/pricing-service
     cmds:
-      - uv run pytest -q
+      - uv run pytest -q -m "not integration and not benchmark"
+
+  run:pricing:
+    desc: Start pricing-service (uvicorn) on :8081
+    dir: services/pricing-service
+    cmds:
+      - uv run uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload
+
+  openapi:pricing:
+    desc: Export pricing OpenAPI JSON into docs/api/pricing-openapi.json
+    dir: services/pricing-service
+    cmds:
+      - uv run python -m app.export_openapi ../../docs/api/pricing-openapi.json
 
   datagen:
     desc: Generate synthetic dataset (parquet + metadata) into artifacts/datasets/default

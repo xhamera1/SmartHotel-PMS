@@ -50,8 +50,39 @@ services:
   # Later phases register services here:
   #   pms-core (Phase 2+) — healthcheck: GET /actuator/health/readiness
   #     (liveness: /actuator/health/liveness · info: /actuator/info · UI: /swagger-ui)
-  #   frontend (Phase 3) · pricing-service (Phase 6)
+  #   frontend (Phase 3)
   #   wiremock [stubs] (Phase 7) · elasticsearch/kibana/filebeat [observability] (Phase 10)
+
+  pricing-service:
+    build:
+      context: ../services/pricing-service
+      dockerfile: Dockerfile
+    container_name: smarthotel-pricing
+    profiles: ["app"]
+    environment:
+      PRICING_DATABASE_URL: postgresql+psycopg://pricing_user:${PRICING_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-smarthotel}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal-api-key}
+      MODEL_ARTIFACT_DIR: /app/fixtures/models/tiny
+      ALLOW_FIXTURE_MODEL: "true"
+      TZ: Europe/Warsaw
+    ports:
+      - "${PRICING_HOST_PORT:-8081}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health/ready')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
 
 volumes:
   pgdata:

@@ -17,3 +17,4 @@ conventions + rationale.
 | File | Source | Consumers |
 |------|--------|-----------|
 | [`pms-openapi.json`](pms-openapi.json) | springdoc `/v3/api-docs` (export via `OpenApiExportIT`) | frontend `openapi-typescript`, later contract tests |
+| [`pricing-openapi.json`](pricing-openapi.json) | FastAPI `/openapi.json` (`python -m app.export_openapi` / `task openapi:pricing`) | CI drift gate (D19), schemathesis, Phase 8 WireMock stubs |

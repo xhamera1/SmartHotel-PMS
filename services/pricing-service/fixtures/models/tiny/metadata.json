@@ -1,0 +1,31 @@
+{
+  "algorithm": "RandomForestRegressor",
+  "artifact_path": "C:/Users/chame/studia/inzynierka/SmartHotel-PMS/services/pricing-service/fixtures/models/tiny/model.joblib",
+  "config": {
+    "max_depth": 10,
+    "n_estimators": 40,
+    "random_state": 42
+  },
+  "dataset_hash": "fixture",
+  "feature_schema_hash": "6a428877c2f519adb20b53964ab287659be8ddb8f1092c93b43ab884bb9ec449",
+  "git_sha": "fixture",
+  "metrics": {
+    "note": "Committed fixture for API tests; not a holdout evaluation",
+    "permutation_importance": [
+      {
+        "feature": "demand_indicator",
+        "importance_mean": 0.3
+      },
+      {
+        "feature": "occupancy_rate",
+        "importance_mean": 0.2
+      },
+      {
+        "feature": "is_weekend",
+        "importance_mean": 0.1
+      }
+    ]
+  },
+  "trained_at": "2026-10-15T08:38:05.670389+00:00",
+  "version": "fixture-tiny-v1"
+}

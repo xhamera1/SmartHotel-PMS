@@ -132,8 +132,14 @@ jobs:
         run: uv run ruff check .
       - name: Ruff format check
         run: uv run ruff format --check .
-      - name: Datagen unit tests
-        run: uv run pytest -q
+      - name: Unit + API tests (exclude slow integration/benchmark)
+        run: uv run pytest -q -m "not integration and not benchmark"
+      - name: OpenAPI export drift check (D19)
+        run: |
+          uv run python -m app.export_openapi ../../docs/api/pricing-openapi.json
+          git diff --exit-code -- ../../docs/api/pricing-openapi.json
+      - name: Schemathesis contract fuzz (quotes)
+        run: uv run pytest -q tests/api/test_schemathesis.py
       - name: ML quick-training metric regression gate
         run: |
           uv run python -m datagen run --config datagen/configs/default.yaml --output ../../tmp/ml-gate-dataset

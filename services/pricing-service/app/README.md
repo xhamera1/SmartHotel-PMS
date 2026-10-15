@@ -1,5 +1,8 @@
 # app
 
-FastAPI API layer: routers, request/response schemas (Pydantic v2), middleware
-(correlation ID, internal API key), settings (`pydantic-settings`), lifespan
-(model loading with feature-schema-hash validation). Built in Phase 6.
+FastAPI API layer: routers, Pydantic v2 schemas (`extra="forbid"`, camelCase),
+correlation-ID + internal API-key middleware, `pydantic-settings`, lifespan model
+load with `feature_schema_hash` validation, problem+json errors.
+
+Entry: `uvicorn app.main:app` or `task run:pricing`.
+OpenAPI export: `python -m app.export_openapi`.

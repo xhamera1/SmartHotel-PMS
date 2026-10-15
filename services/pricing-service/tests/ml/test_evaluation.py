@@ -15,7 +15,15 @@ from ml.baselines import (
     BASELINE_STATIC,
     RANDOM_FOREST_MODEL,
 )
-from ml.evaluation import evaluate_holdout, regression_metrics
+from ml.evaluation import (
+    BATCH_PREDICT_BUDGET_MS,
+    LEARNING_CURVE_FILENAME,
+    compute_learning_curve,
+    evaluate_holdout,
+    evaluate_training_result,
+    measure_batch_predict_ms,
+    regression_metrics,
+)
 from ml.features import (
     FEATURE_NAMES,
     FEATURE_SCHEMA_HASH,
@@ -23,7 +31,7 @@ from ml.features import (
     build_feature_frame,
     build_feature_row,
 )
-from ml.pipeline import build_random_forest_pipeline
+from ml.pipeline import TrainingConfig, TrainingResult, build_random_forest_pipeline
 from ml.splitting import TemporalSplit
 
 
@@ -155,6 +163,56 @@ def test_evaluation_writes_complete_json_and_png_artifacts(tmp_path) -> None:
         BASELINE_LINEAR,
     }
     assert {row["feature"] for row in persisted["permutation_importance"]} == set(FEATURE_NAMES)
+    assert persisted["latency"]["batch_rows"] == 366
+    assert persisted["latency"]["budget_ms"] == BATCH_PREDICT_BUDGET_MS
+    assert persisted["latency"]["passed"] is True
     for path in result.figure_paths.values():
         assert path.is_file()
         assert path.stat().st_size > 0
+
+
+def test_batch_predict_latency_under_budget() -> None:
+    split = evaluation_split()
+    model = build_random_forest_pipeline(random_state=42, n_jobs=1).set_params(
+        regressor__n_estimators=30,
+        regressor__max_depth=8,
+    )
+    model.fit(split.X_train, split.y_train)
+    latency = measure_batch_predict_ms(model, split.X_test, n_rows=366, repeats=2)
+    assert latency["passed"] is True
+    assert float(latency["median_ms"]) < BATCH_PREDICT_BUDGET_MS
+
+
+def test_learning_curve_emitted_by_evaluate_training_result(tmp_path) -> None:
+    split = evaluation_split()
+    pipeline = build_random_forest_pipeline(random_state=42, n_jobs=1).set_params(
+        regressor__n_estimators=15,
+        regressor__max_depth=8,
+    )
+    pipeline.fit(split.X_train, split.y_train)
+
+    class _Search:
+        best_estimator_ = pipeline
+        best_params_ = {"regressor__n_estimators": 15}
+
+    training = TrainingResult(
+        search=_Search(),  # type: ignore[arg-type]
+        split=split,
+        config=TrainingConfig(cv_splits=2, search_iterations=1),
+        feature_names=FEATURE_NAMES,
+    )
+    curve = compute_learning_curve(training, n_points=3)
+    assert len(curve) >= 1
+    assert all("val_mae" in point for point in curve)
+
+    result = evaluate_training_result(
+        training,
+        output_dir=tmp_path,
+        permutation_repeats=1,
+        learning_curve_points=3,
+    )
+    assert (tmp_path / LEARNING_CURVE_FILENAME).is_file()
+    assert "learning_curve" in result.figure_paths
+    persisted = json.loads(result.metrics_path.read_text(encoding="utf-8"))
+    assert persisted["figures"]["learning_curve"] == LEARNING_CURVE_FILENAME
+    assert isinstance(persisted["learning_curve"], list)

@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+import time
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import (
     mean_absolute_error,
@@ -35,6 +37,9 @@ METRICS_FILENAME = "metrics.json"
 PREDICTED_VS_ACTUAL_FILENAME = "predicted_vs_actual.png"
 RESIDUAL_DISTRIBUTION_FILENAME = "residual_distribution.png"
 PERMUTATION_IMPORTANCE_FILENAME = "permutation_feature_importance.png"
+LEARNING_CURVE_FILENAME = "learning_curve.png"
+BATCH_PREDICT_ROWS = 366
+BATCH_PREDICT_BUDGET_MS = 150.0
 
 
 class Regressor(Protocol):
@@ -143,6 +148,11 @@ def evaluate_holdout(
         feature_names=feature_names,
     )
     comparison = _comparison(model_metrics)
+    latency = measure_batch_predict_ms(
+        random_forest,
+        split.X_test,
+        n_rows=BATCH_PREDICT_ROWS,
+    )
     figure_paths = {
         "predicted_vs_actual": output_dir / PREDICTED_VS_ACTUAL_FILENAME,
         "residual_distribution": output_dir / RESIDUAL_DISTRIBUTION_FILENAME,
@@ -184,6 +194,7 @@ def evaluate_holdout(
             "repeats": permutation_repeats,
             "random_state": random_state,
         },
+        "latency": latency,
         "models": model_metrics,
         "comparison": comparison,
         "permutation_importance": importance,
@@ -204,10 +215,11 @@ def evaluate_training_result(
     permutation_repeats: int = 10,
     random_state: int = 42,
     n_jobs: int = 1,
+    learning_curve_points: int = 5,
 ) -> EvaluationResult:
     """Evaluate the selected RF from Step 2 without retraining on test data."""
 
-    return evaluate_holdout(
+    result = evaluate_holdout(
         random_forest=training.best_pipeline,
         split=training.split,
         output_dir=output_dir,
@@ -216,6 +228,126 @@ def evaluate_training_result(
         n_jobs=n_jobs,
         feature_names=training.feature_names,
     )
+    curve = compute_learning_curve(training, n_points=learning_curve_points)
+    curve_path = output_dir / LEARNING_CURVE_FILENAME
+    plot_learning_curve(curve, curve_path)
+    metrics = dict(result.metrics)
+    figures = dict(metrics.get("figures", {}))  # type: ignore[arg-type]
+    figures["learning_curve"] = curve_path.name
+    metrics["learning_curve"] = curve
+    metrics["figures"] = figures
+    figure_paths = dict(result.figure_paths)
+    figure_paths["learning_curve"] = curve_path
+    metrics_path = result.metrics_path
+    metrics_path.write_text(
+        json.dumps(metrics, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    return EvaluationResult(metrics=metrics, metrics_path=metrics_path, figure_paths=figure_paths)
+
+
+def measure_batch_predict_ms(
+    model: Regressor,
+    features: pd.DataFrame,
+    *,
+    n_rows: int = BATCH_PREDICT_ROWS,
+    budget_ms: float = BATCH_PREDICT_BUDGET_MS,
+    repeats: int = 3,
+) -> dict[str, float | int | bool]:
+    """Time a fixed-size batch predict; budget is ≪ 150 ms for 366 rows."""
+
+    if n_rows < 1:
+        raise ValueError("n_rows must be >= 1")
+    if repeats < 1:
+        raise ValueError("repeats must be >= 1")
+    if features.empty:
+        raise ValueError("features must not be empty")
+    sample = features
+    if len(sample) < n_rows:
+        reps = int(np.ceil(n_rows / len(sample)))
+        sample = pd.concat([sample] * reps, ignore_index=True)
+    batch = sample.iloc[:n_rows].reset_index(drop=True)
+    # Warm-up so first-call overhead does not dominate CI noise.
+    model.predict(batch)
+    times_ms: list[float] = []
+    for _ in range(repeats):
+        started = time.perf_counter()
+        model.predict(batch)
+        times_ms.append((time.perf_counter() - started) * 1000.0)
+    median_ms = float(np.median(times_ms))
+    return {
+        "batch_rows": n_rows,
+        "repeats": repeats,
+        "median_ms": median_ms,
+        "budget_ms": budget_ms,
+        "passed": median_ms < budget_ms,
+    }
+
+
+def compute_learning_curve(
+    training: TrainingResult,
+    *,
+    n_points: int = 5,
+) -> list[dict[str, float | int]]:
+    """Validation MAE vs expanding train-date count on the historical partition."""
+
+    if n_points < 2:
+        raise ValueError("n_points must be >= 2")
+    X = training.split.X_train
+    y = training.split.y_train
+    dates = training.split.train_dates
+    unique_dates = sorted(pd.Timestamp(d) for d in dates.unique())
+    if len(unique_dates) < 4:
+        return []
+
+    val_count = max(7, len(unique_dates) // 5)
+    val_dates = set(unique_dates[-val_count:])
+    train_pool = [d for d in unique_dates if d not in val_dates]
+    if not train_pool:
+        return []
+
+    date_values = pd.to_datetime(dates).dt.normalize()
+    val_mask = date_values.isin(val_dates)
+    X_val = X.loc[val_mask]
+    y_val = y.loc[val_mask]
+    if X_val.empty:
+        return []
+
+    points: list[dict[str, float | int]] = []
+    for index in range(1, n_points + 1):
+        n_dates = max(1, int(round(len(train_pool) * index / n_points)))
+        selected = set(train_pool[:n_dates])
+        train_mask = date_values.isin(selected)
+        if int(train_mask.sum()) < 2:
+            continue
+        model = clone(training.best_pipeline)
+        model.fit(X.loc[train_mask], y.loc[train_mask])
+        predicted = np.asarray(model.predict(X_val), dtype="float64")
+        points.append(
+            {
+                "train_dates": n_dates,
+                "train_rows": int(train_mask.sum()),
+                "val_mae": float(mean_absolute_error(y_val, predicted)),
+            }
+        )
+    return points
+
+
+def plot_learning_curve(points: Sequence[Mapping[str, float | int]], path: Path) -> Path:
+    """Persist train-size vs validation MAE figure for the thesis."""
+
+    plt = _plotting()
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    if points:
+        xs = [int(p["train_dates"]) for p in points]
+        ys = [float(p["val_mae"]) for p in points]
+        ax.plot(xs, ys, marker="o", color="#1d3557")
+    ax.set_xlabel("Training stay-date count")
+    ax.set_ylabel("Validation MAE (multiplier)")
+    ax.set_title("Learning curve (expanding train window)")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _save_figure(fig, path, plt)
+    return path
 
 
 def _validated_predictions(values: object, expected_rows: int, model_name: str) -> np.ndarray:

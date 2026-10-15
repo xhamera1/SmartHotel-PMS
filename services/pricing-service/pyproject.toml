@@ -19,6 +19,10 @@ dependencies = [
     "statsmodels>=0.15.0",
     "scikit-learn>=1.7.2,<1.8",
     "joblib>=1.5",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic-settings>=2.0",
+    "httpx>=0.28",
 ]
 
 [dependency-groups]
@@ -26,7 +30,11 @@ dev = [
     "jupyter>=1.1.1",
     "nbconvert>=7.17.1",
     "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-benchmark>=5.0",
     "ruff>=0.12",
+    "schemathesis>=3.0",
+    "testcontainers[postgres]>=4.0",
 ]
 
 # Not an installable package (yet) - uv manages the environment only.
@@ -50,6 +58,15 @@ select = [
     "SIM", # simplify
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# FastAPI Depends/Query in defaults is the idiomatic pattern.
+"app/routers/*.py" = ["B008"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+asyncio_mode = "auto"
+markers = [
+    "integration: tests that require Docker/testcontainers",
+    "benchmark: informational performance benchmarks",
+]
