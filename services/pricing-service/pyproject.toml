@@ -46,9 +46,11 @@ package = false
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+# Colab demos embed long JSON fixtures and exploratory imports — not production code.
+exclude = ["notebooks"]
 
 [tool.ruff.format]
-exclude = ["notebooks/eda_datagen.ipynb"]
+exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = [
