@@ -14,6 +14,9 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Map;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import pl.smarthotel.pms.rooms.RoomTypeEntity;
 
 @Entity
@@ -46,6 +49,10 @@ public class RateCalendarEntity {
 
     @Column(name = "computed_at", nullable = false)
     private Instant computedAt = Instant.EPOCH;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> factors;
 
     public Long getId() {
         return id;
@@ -105,5 +112,13 @@ public class RateCalendarEntity {
 
     public void setComputedAt(Instant computedAt) {
         this.computedAt = computedAt;
+    }
+
+    public Map<String, Object> getFactors() {
+        return factors;
+    }
+
+    public void setFactors(Map<String, Object> factors) {
+        this.factors = factors;
     }
 }

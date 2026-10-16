@@ -16,6 +16,7 @@ REST client (Resilience4j) — never on the guest booking path.
 | `pl.smarthotel.pms.guests` | Guest records; email dedup for booking |
 | `pl.smarthotel.pms.reservations` | Availability, booking lifecycle, state machine, night audit |
 | `pl.smarthotel.pms.ratecalendar` | BAR calendar + `PriceProvider` seam + admin overrides (ADR-0006) |
+| `pl.smarthotel.pms.pricing` | Resilient `PricingClient`, admin proxies, rate-calendar refresh (Phase 8) |
 | `pl.smarthotel.pms.dashboard` | Front-desk KPIs |
 | `pl.smarthotel.pms.auth` | Staff JWT login and roles |
 
@@ -37,6 +38,7 @@ Profiles:
 | Profile | Database | Flyway locations |
 |---------|----------|------------------|
 | `dev` (default) | Compose Postgres (`.env`) | `migration` + `seed` |
+| `docker` | Compose `app` profile (in-network Postgres + pricing) | `migration` + `seed` |
 | `test` | Testcontainers (tests) | `migration` + `seed` |
 | `prod` | Env `PMS_DB_*` | `migration` only |
 
@@ -62,6 +64,21 @@ Then open:
 
 Environment variables: `PMS_DB_URL`, `PMS_DB_USER`, `PMS_DB_PASSWORD`, `PMS_PORT`,
 `JWT_SECRET` (at least 32 chars), `CORS_ALLOWED_ORIGINS` — see `.env.example`.
+
+### Pricing integration (Phase 8)
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `PRICING_ENABLED` | `true` | Feature flag — `false` skips HTTP, refresh job, on-demand quotes |
+| `PRICING_BASE_URL` | `http://localhost:8081` | pricing-service base URL |
+| `PRICING_API_KEY` | (must match `INTERNAL_API_KEY`) | `X-Internal-Api-Key` header |
+
+Nightly refresh: cron `app.rate-refresh.cron` (default `0 0 3 * * *` Europe/Warsaw).
+Admin: `POST /api/v1/admin/pricing/refresh`, `GET …/events`, `GET …/demand-indicators`
+(events/demand cached 5 min). Booking path uses rate_calendar; on miss, a single
+on-demand quote (≤2s) or `BASE_FALLBACK`.
+
+Compose (`infra/compose.yml` profile `app`): `pms-core` + `pricing-service` + Postgres.
 
 ## Auth (ADR-0012, ADR-0014)
 
@@ -100,6 +117,9 @@ service/domain packages. CI job: `backend-java (pms-core)`.
 | PUT/DELETE | `/api/v1/admin/rate-calendar/{roomTypeCode}/{date}` | JWT `ADMIN` | Manual override |
 | GET | `/api/v1/admin/dashboard/kpis` | JWT | Occupancy / arrivals / MTD revenue |
 | GET | `/api/v1/admin/rate-plans` | JWT | Active rate-plan catalog |
+| POST | `/api/v1/admin/pricing/refresh` | JWT `ADMIN` | Pull quotes → upsert rate_calendar |
+| GET | `/api/v1/admin/pricing/events` | JWT | Cached proxy to pricing events |
+| GET | `/api/v1/admin/pricing/demand-indicators` | JWT | Cached proxy to demand series |
 | GET/POST/… | `/api/v1/admin/room-types` · `/rooms` · `/guests` | JWT | Catalogue CRUD |
 
 ERD: `docs/diagrams/erd-pms.md` · API contract: `docs/api/pms-api.md`.

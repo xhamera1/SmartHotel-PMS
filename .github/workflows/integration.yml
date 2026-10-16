@@ -1,0 +1,92 @@
+# =============================================================================
+# Cross-service integration: postgres + pricing-service + pms-core (Phase 8).
+# Builds compose profile "app", refreshes rate calendar, then verifies booking
+# still works after pricing is stopped (BASE_FALLBACK path).
+# =============================================================================
+name: Cross-service integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'services/pms-core/**'
+      - 'services/pricing-service/**'
+      - 'infra/compose.yml'
+      - '.github/workflows/integration.yml'
+      - '.env.example'
+  workflow_dispatch:
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compose-refresh-and-fallback:
+    name: Compose refresh + kill-pricing booking
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare env
+        run: |
+          cp .env.example .env
+          # Ensure JWT secret length for Spring
+          sed -i 's/^JWT_SECRET=.*/JWT_SECRET=ci-jwt-secret-key-at-least-32-bytes-long!!/' .env
+
+      - name: Build and start app stack
+        run: |
+          docker compose --env-file .env -f infra/compose.yml --profile app up -d --build --wait
+          docker compose --env-file .env -f infra/compose.yml --profile app ps
+
+      - name: Wait for readiness
+        run: |
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:8080/actuator/health/readiness >/dev/null \
+              && curl -sf http://127.0.0.1:8081/health/ready >/dev/null; then
+              echo "Both services ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Services not ready in time"
+          docker compose --env-file .env -f infra/compose.yml --profile app logs --tail=200
+          exit 1
+
+      - name: Admin login + refresh rate calendar
+        run: |
+          set -euo pipefail
+          TOKEN=$(curl -sf -X POST http://127.0.0.1:8080/api/v1/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@smarthotel.local","password":"admin-dev-password"}' \
+            | python3 -c 'import sys,json; print(json.load(sys.stdin)["accessToken"])')
+          echo "TOKEN_LEN=${#TOKEN}"
+          REFRESH=$(curl -sf -X POST http://127.0.0.1:8080/api/v1/admin/pricing/refresh \
+            -H "Authorization: Bearer $TOKEN")
+          echo "$REFRESH"
+          echo "$REFRESH" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["status"]=="OK"; assert d["daysUpdated"]>0'
+
+      - name: Stop pricing-service and book with fallback
+        run: |
+          set -euo pipefail
+          docker stop smarthotel-pricing || true
+          CHECK_IN=$(date -u -d '+45 days' +%F)
+          CHECK_OUT=$(date -u -d '+47 days' +%F)
+          RESP=$(curl -s -o /tmp/booking.json -w '%{http_code}' -X POST http://127.0.0.1:8080/api/v1/reservations \
+            -H 'Content-Type: application/json' \
+            -d "{\"roomTypeCode\":\"STD\",\"ratePlanCode\":\"FLEX\",\"checkIn\":\"$CHECK_IN\",\"checkOut\":\"$CHECK_OUT\",\"adults\":2,\"guest\":{\"email\":\"ci-fallback@example.com\",\"firstName\":\"Ci\",\"lastName\":\"Fallback\"}}")
+          echo "HTTP $RESP"
+          cat /tmp/booking.json
+          test "$RESP" = "201"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose --env-file .env -f infra/compose.yml --profile app logs --tail=300
+
+      - name: Tear down
+        if: always()
+        run: docker compose --env-file .env -f infra/compose.yml --profile app down -v

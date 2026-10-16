@@ -1,4 +1,4 @@
-# Weryfikacja lokalna — SmartHotel-PMS (fazy 0–7)
+# Weryfikacja lokalna — SmartHotel-PMS (fazy 0–8)
 
 Krótki przewodnik: co już działa, jak odpalić, jak sprawdzić API (Postman), ML i LLM.
 
@@ -16,10 +16,10 @@ Krótki przewodnik: co już działa, jak odpalić, jak sprawdzić API (Postman),
 | **pricing-service API** — quotes, health, model | ✅ | `task run:pricing` → :8081 |
 | **Eventy** — static fixtures + heuristic scoring | ✅ | `task events:sync` (bez kluczy) |
 | **Gemini + Ticketmaster** (live) | ✅ opcjonalnie | klucze w `.env` + `EVENT_PROVIDER=ticketmaster` |
-| **Integracja PMS ↔ pricing** (rate calendar refresh) | ❌ Phase 8 | PMS jeszcze nie woła quotes w pełnym flow |
+| **Integracja PMS ↔ pricing** (rate calendar refresh) | ✅ Phase 8 | `POST /api/v1/admin/pricing/refresh` → `rate_calendar` |
 | E2E Playwright, ELK, k6 | ❌ Phase 9–11 | — |
 
-**Wniosek:** możesz ocenić ML i LLM **bez** Phase 8 — bezpośrednio przez pricing-service (Postman / Swagger / notebooki).
+**Wniosek:** ML/LLM możesz nadal oceniać bezpośrednio na :8081; pełny flow cen w PMS to refresh kalendarza + booking.
 
 ---
 
@@ -201,9 +201,9 @@ Bez Gemini pipeline i tak działa (heurystyka) — to świadoma decyzja (ADR-001
 
 1. `http://localhost:5173` — booking gościa (availability → rezerwacja).
 2. Panel admina — login staff (dane wyżej): pokoje, rezerwacje, rate calendar.
-3. **Dynamic pricing z eventów w kalendarzu** — pełne spięcie dopiero w Phase 8 (`POST …/pricing/refresh`). Na razie ceny w PMS mogą być bazowe / seedowe, nawet gdy pricing-service już liczy quotes.
+3. **Dynamic pricing w kalendarzu** — po loginie ADMIN: `POST /api/v1/admin/pricing/refresh`, potem `GET /api/v1/admin/rate-calendar`. Eventy/popyt: `GET …/pricing/events` i `…/demand-indicators`. Flaga `PRICING_ENABLED=false` wraca do cen bazowych.
 
-Żeby „zobaczyć AI” przed Phase 8 → **Postman na :8081** albo notebooki.
+Compose z oboma serwisami: `docker compose --env-file .env -f infra/compose.yml --profile app up -d --wait`.
 
 ---
 

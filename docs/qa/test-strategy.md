@@ -89,9 +89,26 @@ configuration, and UI layout.
 - A committed golden fixture set (tiny dataset + tiny trained model) serves API
   tests — tests never retrain models.
 
+## Phase 8 — PMS ↔ pricing FMEA (resilience)
+
+| Failure mode | Detection | Mitigation | Test evidence |
+|--------------|-----------|------------|---------------|
+| pricing-service 5xx / timeout | Resilience4j retry + CB; WARN logs | Fallback empty Optional / empty lists; booking uses `BASE_FALLBACK` | `PricingClientWireMockTest` |
+| Circuit open after burst failures | CB state OPEN | Short-circuit without HTTP; wait 30s half-open | WireMock CB scenario |
+| Malformed quotes JSON | Jackson deserialize error | Fallback empty; no partial upsert | WireMock malformed case |
+| Partial chunk failure in refresh | Per-chunk try/catch | Prior chunks committed; next nightly run fills gaps | `RateCalendarRefreshJobTest` |
+| MANUAL override overwritten | Skip dates in `findManualDatesForRoomType` | MANUAL rows never upserted from ML | Refresh job test |
+| Admin UI blocked on events/demand | `@Cacheable` 5 min + empty list fallback | UI renders empty series, not 5xx | Proxy + SecurityMatrixIT |
+| Feature flag off | `app.pricing.enabled=false` | No HTTP, no refresh job, BASE prices | application-test.yml default |
+
+Cross-service IT (`CrossServiceIT`): refresh via WireMock quotes → `ML_MODEL` rows; booking with pricing 503 still `201`.
+
+Compose profile `app` + workflow `integration.yml` exercise the real pricing container on main.
+
 ## Status log
 
 | Date | Change |
 |------|--------|
 | 2026-09-05 | Baseline adopted (Phase 0). Active gates so far: compose config lint, DB smoke checks, CRLF hygiene. |
 | 2026-09-05 | Phase 1 PMS persistence tests: real Flyway migrations (baseline + opt-in seeds), idempotency, existing infra schema, overlap/adjacency and reservation status constraints. `task test:java` runs Maven Failsafe via the wrapper; `task test` includes it. Java CI runs on service, task or workflow changes and manual dispatch; JUnit reports uploaded. Python CI also runs ruff and the Alembic migration cycle. |
+| 2026-10-15 | Phase 8: PricingClient WireMock + Resilience4j, rate-calendar refresh, contract test vs `pricing-openapi.json`, CrossServiceIT, compose `pms-core`, integration workflow. |

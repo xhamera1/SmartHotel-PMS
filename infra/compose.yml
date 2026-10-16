@@ -48,10 +48,45 @@ services:
     restart: unless-stopped
 
   # Later phases register services here:
-  #   pms-core (Phase 2+) — healthcheck: GET /actuator/health/readiness
-  #     (liveness: /actuator/health/liveness · info: /actuator/info · UI: /swagger-ui)
   #   frontend (Phase 3)
-  #   wiremock [stubs] (Phase 7) · elasticsearch/kibana/filebeat [observability] (Phase 10)
+  #   wiremock [stubs] · elasticsearch/kibana/filebeat [observability] (Phase 10)
+
+  pms-core:
+    build:
+      context: ../services/pms-core
+      dockerfile: Dockerfile
+    container_name: smarthotel-pms
+    profiles: ["app"]
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-smarthotel}?currentSchema=pms
+      SPRING_DATASOURCE_USERNAME: pms_user
+      SPRING_DATASOURCE_PASSWORD: ${PMS_DB_PASSWORD:-pms-dev-password}
+      JWT_SECRET: ${JWT_SECRET:-change-me-generate-a-256-bit-secret-min-32-chars}
+      PRICING_BASE_URL: http://pricing-service:8081
+      PRICING_API_KEY: ${INTERNAL_API_KEY:-dev-internal-api-key}
+      PRICING_ENABLED: ${PRICING_ENABLED:-true}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      TZ: Europe/Warsaw
+    ports:
+      - "${PMS_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pricing-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:8080/actuator/health/readiness || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    restart: unless-stopped
 
   pricing-service:
     build:
@@ -66,7 +101,7 @@ services:
       ALLOW_FIXTURE_MODEL: "true"
       EVENT_PROVIDER: ${EVENT_PROVIDER:-static}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
       TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY:-}
       HOTEL_LAT: ${HOTEL_LAT:-50.068369}
       HOTEL_LON: ${HOTEL_LON:-19.924854}

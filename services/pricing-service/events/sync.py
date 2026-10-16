@@ -13,6 +13,7 @@ import sqlalchemy as sa
 from app.settings import Settings
 from events.aggregation import aggregate_demand, upsert_daily_demand
 from events.ingestion import (
+    events_needing_scoring,
     get_event_db_id,
     insert_scores,
     mark_stale,
@@ -89,18 +90,41 @@ class SyncPipeline:
         summary["events_upserted"] = len(upsert_results)
         summary["events_stale"] = stale_count
 
-        # 3. Score new/changed events
+        # 3. Score new/changed events — skip those already scored with
+        # the current prompt_version + llm_model (LLM response cache, D9)
         events_by_eid = {e.external_id: e for e in events}
         to_score: list[NormalizedEvent] = []
         to_score_db_ids: dict[str, int] = {}
 
+        # Determine which events actually need scoring (cache check)
+        primary_model = self._settings.gemini_model if self._settings.gemini_api_key else "heuristic"
+        already_scored_eids: set[str] = set()
+        try:
+            needing = events_needing_scoring(
+                self._engine,
+                prompt_version=self._settings.prompt_version,
+                llm_model=primary_model,
+            )
+            needing_eids = {r["external_id"] for r in needing}
+        except Exception:
+            logger.warning("Cache check query failed — scoring all new/changed events")
+            needing_eids = None
+
         for result in upsert_results:
             eid = result["external_id"]
-            if result.get("is_new_or_changed") and eid in events_by_eid:
-                to_score.append(events_by_eid[eid])
-                to_score_db_ids[eid] = result["id"]
+            if not result.get("is_new_or_changed"):
+                continue
+            if eid not in events_by_eid:
+                continue
+            # Skip if already scored with matching prompt+model (cache hit)
+            if needing_eids is not None and eid not in needing_eids:
+                already_scored_eids.add(eid)
+                continue
+            to_score.append(events_by_eid[eid])
+            to_score_db_ids[eid] = result["id"]
 
         summary["events_to_score"] = len(to_score)
+        summary["events_cache_hit"] = len(already_scored_eids)
 
         if to_score:
             scorers = _build_scorers(self._settings, self._budget)

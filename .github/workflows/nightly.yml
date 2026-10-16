@@ -1,0 +1,270 @@
+# =============================================================================
+# SmartHotel-PMS — nightly regression pipeline (Phase 12).
+# Scheduled daily: full E2E matrix, k6 load/soak + baseline comparison,
+# ELK smoke, mutation testing (report-only), and dependency audit.
+# =============================================================================
+name: Nightly
+
+on:
+  schedule:
+    - cron: '30 2 * * *'   # 02:30 UTC daily
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+  security-events: write   # for dependency audit
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Full E2E matrix (Playwright — chromium + firefox, Phase 9+)
+  # ---------------------------------------------------------------------------
+  e2e-full:
+    name: E2E (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: hashFiles('e2e/playwright.config.ts') != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare env
+        run: |
+          cp .env.example .env
+          sed -i 's/^JWT_SECRET=.*/JWT_SECRET=ci-jwt-secret-key-at-least-32-bytes-long!!/' .env
+      - name: Start app stack
+        run: |
+          docker compose --env-file .env -f infra/compose.yml --profile app up -d --build --wait
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - name: Install E2E deps
+        working-directory: e2e
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps ${{ matrix.browser }}
+      - name: Run Playwright (${{ matrix.browser }})
+        working-directory: e2e
+        run: pnpm exec playwright test --project=${{ matrix.browser }}
+      - name: Upload traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces-${{ matrix.browser }}
+          path: e2e/test-results/
+          if-no-files-found: ignore
+      - name: Tear down
+        if: always()
+        run: docker compose --env-file .env -f infra/compose.yml --profile app down -v
+
+  # ---------------------------------------------------------------------------
+  # 2. k6 load + soak + baseline comparison (Phase 11+)
+  # ---------------------------------------------------------------------------
+  k6-full:
+    name: k6 load + soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    if: hashFiles('perf/load.js') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare env
+        run: |
+          cp .env.example .env
+          sed -i 's/^JWT_SECRET=.*/JWT_SECRET=ci-jwt-secret-key-at-least-32-bytes-long!!/' .env
+      - name: Start app stack
+        run: |
+          docker compose --env-file .env -f infra/compose.yml --profile app up -d --build --wait
+      - uses: grafana/setup-k6-action@v1
+      - name: k6 load scenario
+        run: k6 run perf/load.js --out json=tmp/k6-load.json
+      - name: k6 soak scenario
+        if: hashFiles('perf/soak.js') != ''
+        run: k6 run perf/soak.js --out json=tmp/k6-soak.json
+      - name: Compare with baselines
+        if: hashFiles('perf/baselines/*.json') != ''
+        run: |
+          echo "Baseline comparison (±15% tolerance):"
+          python3 -c "
+          import json, sys, pathlib
+          base = pathlib.Path('perf/baselines')
+          for f in base.glob('*.json'):
+              print(f'  baseline: {f.name}')
+          print('  (comparison script to be implemented in Phase 11)')
+          "
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-nightly-results
+          path: tmp/k6-*.json
+          if-no-files-found: ignore
+      - name: Tear down
+        if: always()
+        run: docker compose --env-file .env -f infra/compose.yml --profile app down -v
+
+  # ---------------------------------------------------------------------------
+  # 3. ELK smoke (Phase 10+)
+  # ---------------------------------------------------------------------------
+  elk-smoke:
+    name: ELK observability smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: hashFiles('infra/elk/filebeat.yml') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare env
+        run: |
+          cp .env.example .env
+          sed -i 's/^JWT_SECRET=.*/JWT_SECRET=ci-jwt-secret-key-at-least-32-bytes-long!!/' .env
+      - name: Start app + observability stack
+        run: |
+          docker compose --env-file .env -f infra/compose.yml --profile app --profile observability up -d --build --wait
+      - name: Generate some traffic
+        run: |
+          for i in $(seq 1 5); do
+            curl -sf http://127.0.0.1:8080/actuator/health || true
+            curl -sf http://127.0.0.1:8081/health/ready || true
+            sleep 2
+          done
+      - name: Wait for Filebeat to ship logs
+        run: sleep 30
+      - name: Assert Elasticsearch has documents
+        run: |
+          COUNT=$(curl -sf http://127.0.0.1:9200/_count | python3 -c 'import sys,json; print(json.load(sys.stdin)["count"])')
+          echo "ES document count: $COUNT"
+          test "$COUNT" -gt 0
+      - name: Tear down
+        if: always()
+        run: docker compose --env-file .env -f infra/compose.yml --profile app --profile observability down -v
+
+  # ---------------------------------------------------------------------------
+  # 4. Mutation testing — report-only (Phase 12, Optional-Advanced)
+  # ---------------------------------------------------------------------------
+  mutation-java:
+    name: Mutation testing (PIT, Java)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: services/pms-core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: services/pms-core/pom.xml
+      - name: Run PIT mutation testing
+        run: |
+          if mvn -B -ntp help:evaluate -Dexpression=project.build.plugins -q -DforceStdout | grep -q pitest; then
+            mvn -B -ntp test-compile org.pitest:pitest-maven:mutationCoverage || true
+          else
+            echo "PIT plugin not yet configured — skipping"
+          fi
+      - name: Upload PIT report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pit-mutation-report
+          path: services/pms-core/target/pit-reports/
+          if-no-files-found: ignore
+
+  mutation-python:
+    name: Mutation testing (mutmut, Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: services/pricing-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/pricing-service/uv.lock
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run mutmut (ml + events/scoring)
+        run: |
+          if uv run python -c "import mutmut" 2>/dev/null; then
+            uv run mutmut run --paths-to-mutate=ml/,events/scoring/ --tests-dir=tests/ || true
+            uv run mutmut results || true
+          else
+            echo "mutmut not installed — skipping"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # 5. Dependency audit (supply-chain security)
+  # ---------------------------------------------------------------------------
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy scan — pms-core Dockerfile
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: services/pms-core
+          severity: HIGH,CRITICAL
+          exit-code: '0'
+          format: table
+
+      - name: Trivy scan — pricing-service Dockerfile
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: services/pricing-service
+          severity: HIGH,CRITICAL
+          exit-code: '0'
+          format: table
+
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: npm audit (frontend)
+        working-directory: frontend
+        run: |
+          corepack enable pnpm
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level=high || true
+
+  # ---------------------------------------------------------------------------
+  # Aggregate (informational — nightly failures are not blocking)
+  # ---------------------------------------------------------------------------
+  nightly-summary:
+    name: Nightly summary
+    needs: [e2e-full, k6-full, elk-smoke, mutation-java, mutation-python, dependency-audit]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report status
+        run: |
+          echo "Nightly pipeline completed."
+          echo "E2E:       ${{ needs.e2e-full.result }}"
+          echo "k6:        ${{ needs.k6-full.result }}"
+          echo "ELK:       ${{ needs.elk-smoke.result }}"
+          echo "PIT:       ${{ needs.mutation-java.result }}"
+          echo "mutmut:    ${{ needs.mutation-python.result }}"
+          echo "Dep audit: ${{ needs.dependency-audit.result }}"

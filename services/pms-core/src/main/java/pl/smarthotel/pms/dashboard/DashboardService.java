@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.smarthotel.pms.common.config.ClockConfig;
+import pl.smarthotel.pms.common.domain.OccupancyCalculator;
 import pl.smarthotel.pms.reservations.ReservationEntity;
 import pl.smarthotel.pms.reservations.ReservationRepository;
 import pl.smarthotel.pms.rooms.RoomRepository;
@@ -73,10 +74,7 @@ public class DashboardService {
                     }
                 }
             }
-            BigDecimal occupancy = sellable == 0
-                    ? BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP)
-                    : BigDecimal.valueOf(occupied)
-                            .divide(BigDecimal.valueOf(sellable), 4, RoundingMode.HALF_UP);
+            BigDecimal occupancy = OccupancyCalculator.rateBigDecimal(occupied, sellable);
             BigDecimal adr = occupied == 0
                     ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
                     : nightRevenue.divide(BigDecimal.valueOf(occupied), 2, RoundingMode.HALF_UP);

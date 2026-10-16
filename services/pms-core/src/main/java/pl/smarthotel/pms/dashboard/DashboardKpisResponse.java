@@ -3,6 +3,7 @@ package pl.smarthotel.pms.dashboard;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import pl.smarthotel.pms.common.domain.OccupancyCalculator;
 
 public record DashboardKpisResponse(
         LocalDate businessDate,
@@ -21,13 +22,9 @@ public record DashboardKpisResponse(
             long arrivals,
             long departures,
             BigDecimal mtdRevenue) {
-        BigDecimal occupancy = sellable == 0
-                ? BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP)
-                : BigDecimal.valueOf(occupied)
-                        .divide(BigDecimal.valueOf(sellable), 4, RoundingMode.HALF_UP);
         return new DashboardKpisResponse(
                 businessDate,
-                occupancy,
+                OccupancyCalculator.rateBigDecimal(occupied, sellable),
                 occupied,
                 sellable,
                 arrivals,

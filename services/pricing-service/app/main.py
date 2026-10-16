@@ -13,6 +13,7 @@ from app.errors import register_exception_handlers
 from app.middleware.auth import InternalApiKeyMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import demand, events, health, internal, model, quotes
+from app.scheduler import start_scheduler, stop_scheduler
 from app.services.model_loader import ModelHolder, ModelState, load_active_model
 from app.settings import DEFAULT_FIXTURE_MODEL, Settings, get_settings
 
@@ -55,7 +56,9 @@ def create_app(
             except Exception:
                 # DB may be down at startup; ready stays false until reload succeeds.
                 holder.set(None)
+        scheduler = start_scheduler(active_engine, settings_local)
         yield
+        stop_scheduler()
         if owns_engine:
             active_engine.dispose()
 

@@ -41,4 +41,12 @@ public interface RoomRepository extends JpaRepository<RoomEntity, Long> {
     long countActiveReservations(@Param("roomId") long roomId);
 
     long countByStatusNot(RoomStatus status);
+
+    @Query(
+            """
+            SELECT COUNT(r) FROM RoomEntity r
+            WHERE r.roomType.id = :roomTypeId
+              AND r.status <> pl.smarthotel.pms.rooms.RoomStatus.OUT_OF_SERVICE
+            """)
+    long countSellableByRoomTypeId(@Param("roomTypeId") long roomTypeId);
 }

@@ -25,4 +25,17 @@ public interface RateCalendarRepository extends JpaRepository<RateCalendarEntity
             @Param("toExclusive") LocalDate toExclusive);
 
     Optional<RateCalendarEntity> findByRoomTypeIdAndDate(long roomTypeId, LocalDate date);
+
+    @Query(
+            """
+            SELECT e.date FROM RateCalendarEntity e
+            WHERE e.roomType.id = :roomTypeId
+              AND e.source = pl.smarthotel.pms.ratecalendar.PriceSource.MANUAL
+              AND e.date >= :fromInclusive
+              AND e.date < :toExclusive
+            """)
+    List<LocalDate> findManualDatesForRoomType(
+            @Param("roomTypeId") long roomTypeId,
+            @Param("fromInclusive") LocalDate fromInclusive,
+            @Param("toExclusive") LocalDate toExclusive);
 }

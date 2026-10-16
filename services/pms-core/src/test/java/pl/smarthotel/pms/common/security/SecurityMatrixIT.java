@@ -52,7 +52,9 @@ class SecurityMatrixIT {
         "GET,/api/v1/admin/guests,401",
         "GET,/api/v1/admin/room-types,401",
         "GET,/api/v1/admin/rate-calendar?roomTypeCode=STD&from=2026-10-01&to=2026-10-03,401",
-        "GET,/api/v1/admin/dashboard/kpis,401"
+        "GET,/api/v1/admin/dashboard/kpis,401",
+        "GET,/api/v1/admin/pricing/events?from=2026-10-01&to=2026-10-07,401",
+        "POST,/api/v1/admin/pricing/refresh,401"
     })
     @WithAnonymousUser
     void anonymousMatrix(String method, String path, int status) throws Exception {
@@ -66,6 +68,9 @@ class SecurityMatrixIT {
         "GET,/api/v1/admin/dashboard/kpis,200",
         "GET,/api/v1/admin/rate-calendar?roomTypeCode=STD&from=2026-10-01&to=2026-10-03,200",
         "GET,/api/v1/admin/room-types?page=0&size=5,200",
+        "GET,/api/v1/admin/pricing/events?from=2026-10-01&to=2026-10-07,200",
+        "GET,/api/v1/admin/pricing/demand-indicators?from=2026-10-01&to=2026-10-07,200",
+        "POST,/api/v1/admin/pricing/refresh,403",
         "PUT,/api/v1/admin/rate-calendar/STD/2026-10-01,403"
     })
     @WithMockUser(roles = "RECEPTIONIST")
@@ -79,7 +84,9 @@ class SecurityMatrixIT {
         "GET,/api/v1/admin/rooms?page=0&size=5,200",
         "GET,/api/v1/admin/guests?page=0&size=5,200",
         "GET,/api/v1/admin/dashboard/kpis,200",
-        "GET,/api/v1/admin/rate-plans,200"
+        "GET,/api/v1/admin/rate-plans,200",
+        "GET,/api/v1/admin/pricing/events?from=2026-10-01&to=2026-10-07,200",
+        "POST,/api/v1/admin/pricing/refresh,200"
     })
     @WithMockUser(roles = "ADMIN")
     void adminMatrix(String method, String path, int status) throws Exception {

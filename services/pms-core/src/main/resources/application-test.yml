@@ -17,6 +17,10 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:5173
+  pricing:
+    enabled: false
+    base-url: http://localhost:9
+    api-key: test-key
   jwt:
     secret: test-jwt-secret-key-at-least-32-bytes-long!!
     access-token-ttl: 3600

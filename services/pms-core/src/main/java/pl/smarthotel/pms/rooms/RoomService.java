@@ -75,6 +75,18 @@ public class RoomService {
         return roomMapper.toResponse(roomRepository.save(entity));
     }
 
+    @Transactional
+    public void delete(long id) {
+        RoomEntity entity = requireWithType(id);
+        if (roomRepository.countActiveReservations(id) > 0) {
+            throw ApplicationException.conflict(
+                    "Cannot delete room "
+                            + entity.getRoomNumber()
+                            + " while it has active reservations");
+        }
+        roomRepository.delete(entity);
+    }
+
     private RoomEntity requireWithType(long id) {
         return roomRepository
                 .findByIdWithType(id)

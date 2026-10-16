@@ -15,20 +15,60 @@ import { BookingSearchPage } from '@/features/booking/pages/BookingSearchPage'
 import { ManageBookingPage } from '@/features/booking/pages/ManageBookingPage'
 import { RequireAuth } from '@/shared/auth/RequireAuth'
 import { RequireRole } from '@/shared/auth/RequireRole'
+import { RouteErrorBoundary } from '@/shared/ui/RouteErrorBoundary'
 
 export const router = createBrowserRouter([
-  { path: '/', element: <BookingHomePage /> },
-  { path: '/booking', element: <BookingSearchPage /> },
-  { path: '/booking/checkout', element: <BookingCheckoutPage /> },
-  { path: '/booking/confirmation', element: <BookingConfirmationPage /> },
-  { path: '/booking/manage', element: <ManageBookingPage /> },
+  {
+    path: '/',
+    element: (
+      <RouteErrorBoundary section="booking">
+        <BookingHomePage />
+      </RouteErrorBoundary>
+    ),
+  },
+  {
+    path: '/booking',
+    element: (
+      <RouteErrorBoundary section="booking">
+        <BookingSearchPage />
+      </RouteErrorBoundary>
+    ),
+  },
+  {
+    path: '/booking/checkout',
+    element: (
+      <RouteErrorBoundary section="booking">
+        <BookingCheckoutPage />
+      </RouteErrorBoundary>
+    ),
+  },
+  {
+    path: '/booking/confirmation',
+    element: (
+      <RouteErrorBoundary section="booking">
+        <BookingConfirmationPage />
+      </RouteErrorBoundary>
+    ),
+  },
+  {
+    path: '/booking/manage',
+    element: (
+      <RouteErrorBoundary section="booking">
+        <ManageBookingPage />
+      </RouteErrorBoundary>
+    ),
+  },
   { path: '/admin/login', element: <AdminLoginPage /> },
   {
     path: '/admin',
     element: <RequireAuth />,
     children: [
       {
-        element: <AdminShell />,
+        element: (
+          <RouteErrorBoundary section="admin">
+            <AdminShell />
+          </RouteErrorBoundary>
+        ),
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'reservations', element: <ReservationsPage /> },

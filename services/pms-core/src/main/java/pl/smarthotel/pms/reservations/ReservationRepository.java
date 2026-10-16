@@ -145,4 +145,16 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
             """)
     List<ReservationEntity> findForOccupancyWindow(
             @Param("fromInclusive") LocalDate fromInclusive, @Param("toExclusive") LocalDate toExclusive);
+
+    @Query(
+            """
+            SELECT COUNT(DISTINCT r.room.id) FROM ReservationEntity r
+            WHERE r.room.roomType.id = :roomTypeId
+              AND r.status IN (
+                    pl.smarthotel.pms.reservations.ReservationStatus.CONFIRMED,
+                    pl.smarthotel.pms.reservations.ReservationStatus.CHECKED_IN)
+              AND r.checkIn <= :day
+              AND r.checkOut > :day
+            """)
+    long countOccupiedRoomsForTypeOn(@Param("roomTypeId") long roomTypeId, @Param("day") LocalDate day);
 }

@@ -56,7 +56,7 @@ class GeminiScorer(EventScorer):
         self,
         *,
         api_key: str,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-3.8-flash",
         prompt_version: str = "event-impact-v1",
         budget_check: Any = None,
     ) -> None:
@@ -126,7 +126,9 @@ class GeminiScorer(EventScorer):
                             system_instruction=system_prompt,
                             temperature=0.1,
                             response_mime_type="application/json",
-                            response_schema=EventScoresResponse,
+                            # response_json_schema accepts full JSON Schema from Pydantic;
+                            # response_schema rejects additionalProperties from extra=forbid.
+                            response_json_schema=EventScoresResponse.model_json_schema(),
                         ),
                     ),
                     timeout=TIMEOUT_SECONDS,

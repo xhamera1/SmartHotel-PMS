@@ -40,6 +40,7 @@ public class ReservationService {
     private final GuestService guestService;
     private final PriceProvider priceProvider;
     private final ConfirmationCodeGenerator confirmationCodeGenerator;
+    private final ReservationMapper reservationMapper;
     private final Clock clock;
     private final ZoneId hotelZone;
 
@@ -50,6 +51,7 @@ public class ReservationService {
             GuestService guestService,
             PriceProvider priceProvider,
             ConfirmationCodeGenerator confirmationCodeGenerator,
+            ReservationMapper reservationMapper,
             Clock clock,
             @Qualifier(ClockConfig.HOTEL_ZONE_BEAN) ZoneId hotelZone) {
         this.reservationRepository = reservationRepository;
@@ -58,6 +60,7 @@ public class ReservationService {
         this.guestService = guestService;
         this.priceProvider = priceProvider;
         this.confirmationCodeGenerator = confirmationCodeGenerator;
+        this.reservationMapper = reservationMapper;
         this.clock = clock;
         this.hotelZone = hotelZone;
     }
@@ -196,7 +199,7 @@ public class ReservationService {
                 to,
                 normalizedQuery,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "checkIn", "id")));
-        return PageResponse.from(result.map(ReservationService::toAdminSummary));
+        return PageResponse.from(result.map(reservationMapper::toAdminSummary));
     }
 
     @Transactional
@@ -258,40 +261,7 @@ public class ReservationService {
                 .orElseThrow(() -> ApplicationException.notFound("Reservation not found: " + id));
     }
 
-    static ReservationResponse toResponse(ReservationEntity entity) {
-        RatePlanEntity plan = entity.getRatePlan();
-        return new ReservationResponse(
-                entity.getId(),
-                entity.getConfirmationCode(),
-                entity.getStatus(),
-                entity.getRoom().getRoomType().getCode(),
-                entity.getRoom().getRoomNumber(),
-                new ReservationResponse.RatePlanSummary(
-                        plan.getCode(), plan.isRefundable(), plan.isBreakfastIncluded()),
-                entity.getCheckIn(),
-                entity.getCheckOut(),
-                entity.getAdults(),
-                entity.getTotalPrice(),
-                entity.getCurrency(),
-                entity.getPriceBreakdown(),
-                entity.getSource());
-    }
-
-    static AdminReservationSummary toAdminSummary(ReservationEntity entity) {
-        GuestEntity guest = entity.getGuest();
-        return new AdminReservationSummary(
-                entity.getId(),
-                entity.getConfirmationCode(),
-                entity.getStatus(),
-                entity.getRoom().getRoomType().getCode(),
-                entity.getRoom().getRoomNumber(),
-                guest.getFirstName() + " " + guest.getLastName(),
-                guest.getEmail(),
-                entity.getCheckIn(),
-                entity.getCheckOut(),
-                entity.getAdults(),
-                entity.getTotalPrice(),
-                entity.getCurrency(),
-                entity.getSource());
+    private ReservationResponse toResponse(ReservationEntity entity) {
+        return reservationMapper.toResponse(entity);
     }
 }
