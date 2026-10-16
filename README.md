@@ -1,7 +1,7 @@
 # SmartHotel-PMS
 
 **Hotel Management System with an Intelligent Dynamic Pricing Engine**
-Bachelor's thesis project — Patryk Chamera
+Bachelor's thesis project - Patryk Chamera
 
 A hotel property management system (PMS) with a public booking module, backed by a
 machine-learning pricing engine. Prices are recommended by a Random Forest model whose
@@ -45,8 +45,6 @@ infra/                Docker Compose, ELK config, WireMock stubs, seed data
 tools/                cross-platform developer scripts
 .github/workflows/    CI/CD pipelines (GitHub Actions)
 ```
-
-
 
 ## Project status
 
