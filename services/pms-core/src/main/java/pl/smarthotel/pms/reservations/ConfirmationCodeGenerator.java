@@ -1,5 +1,6 @@
 package pl.smarthotel.pms.reservations;
 
+import java.security.SecureRandom;
 import java.util.random.RandomGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ public class ConfirmationCodeGenerator {
 
     @Autowired
     public ConfirmationCodeGenerator(ReservationRepository reservationRepository) {
-        this(reservationRepository, RandomGenerator.getDefault());
+        this(reservationRepository, new SecureRandom());
     }
 
     ConfirmationCodeGenerator(ReservationRepository reservationRepository, RandomGenerator random) {

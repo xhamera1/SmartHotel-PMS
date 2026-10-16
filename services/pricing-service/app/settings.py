@@ -10,7 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 SERVICE_ROOT = PACKAGE_ROOT.parent
-REPO_ROOT = SERVICE_ROOT.parents[1]
+REPO_ROOT = SERVICE_ROOT.parents[1] if len(SERVICE_ROOT.parents) > 1 else SERVICE_ROOT
 DEFAULT_FIXTURE_MODEL = SERVICE_ROOT / "fixtures" / "models" / "tiny"
 
 
