@@ -97,7 +97,9 @@ class SyncPipeline:
         to_score_db_ids: dict[str, int] = {}
 
         # Determine which events actually need scoring (cache check)
-        primary_model = self._settings.gemini_model if self._settings.gemini_api_key else "heuristic"
+        primary_model = (
+            self._settings.gemini_model if self._settings.gemini_api_key else "heuristic"
+        )
         already_scored_eids: set[str] = set()
         try:
             needing = events_needing_scoring(

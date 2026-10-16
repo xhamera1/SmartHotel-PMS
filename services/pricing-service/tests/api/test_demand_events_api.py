@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
-from unittest.mock import MagicMock, patch
+from datetime import UTC, date, datetime
+from unittest.mock import patch
 
 import pytest
-
-from tests.api.conftest import API_KEY
 
 
 @pytest.mark.asyncio
@@ -101,8 +99,8 @@ async def test_events_returns_items(client, auth_headers) -> None:
             "id": 1,
             "name": "Summer Festival",
             "category": "MUSIC",
-            "starts_at": datetime(2027, 7, 10, 18, 0, tzinfo=timezone.utc),
-            "ends_at": datetime(2027, 7, 10, 23, 0, tzinfo=timezone.utc),
+            "starts_at": datetime(2027, 7, 10, 18, 0, tzinfo=UTC),
+            "ends_at": datetime(2027, 7, 10, 23, 0, tzinfo=UTC),
             "impact_score": 72,
             "distance_km": 3.5,
         },

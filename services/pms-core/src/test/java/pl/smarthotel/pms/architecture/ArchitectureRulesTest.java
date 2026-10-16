@@ -1,5 +1,7 @@
 package pl.smarthotel.pms.architecture;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.simpleNameEndingWith;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -56,8 +58,9 @@ class ArchitectureRulesTest {
             .that()
             .haveSimpleNameEndingWith("Controller")
             .should()
-            .dependOnClassesThat()
-            .haveSimpleNameEndingWith("Entity")
+            .dependOnClassesThat(
+                    simpleNameEndingWith("Entity")
+                            .and(resideInAPackage("pl.smarthotel.pms..")))
             .because("controllers work with DTOs/records, never with JPA entities directly");
 
     @ArchTest

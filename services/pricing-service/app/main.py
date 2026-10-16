@@ -56,7 +56,7 @@ def create_app(
             except Exception:
                 # DB may be down at startup; ready stays false until reload succeeds.
                 holder.set(None)
-        scheduler = start_scheduler(active_engine, settings_local)
+        start_scheduler(active_engine, settings_local)
         yield
         stop_scheduler()
         if owns_engine:

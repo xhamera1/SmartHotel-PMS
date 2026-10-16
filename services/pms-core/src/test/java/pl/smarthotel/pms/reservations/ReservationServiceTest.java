@@ -100,6 +100,17 @@ class ReservationServiceTest {
         when(confirmationCodeGenerator.next()).thenReturn("K7NR4PWM");
         when(reservationRepository.saveAndFlush(any(ReservationEntity.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
+        when(reservationMapper.toResponse(any(ReservationEntity.class))).thenAnswer(inv -> {
+            ReservationEntity e = inv.getArgument(0);
+            return new ReservationResponse(
+                    e.getId(), e.getConfirmationCode(), e.getStatus(),
+                    e.getRoom().getRoomType().getCode(), e.getRoom().getRoomNumber(),
+                    new ReservationResponse.RatePlanSummary(
+                            e.getRatePlan().getCode(), e.getRatePlan().isRefundable(),
+                            e.getRatePlan().isBreakfastIncluded()),
+                    e.getCheckIn(), e.getCheckOut(), e.getAdults(),
+                    e.getTotalPrice(), e.getCurrency(), e.getPriceBreakdown(), e.getSource());
+        });
 
         CreateReservationRequest request = new CreateReservationRequest(
                 "DLX",
@@ -188,6 +199,17 @@ class ReservationServiceTest {
         when(reservationRepository.findByConfirmationCodeAndGuestEmailIgnoreCase("ABCD1234", "jan@example.com"))
                 .thenReturn(Optional.of(reservation));
         when(reservationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(reservationMapper.toResponse(any(ReservationEntity.class))).thenAnswer(inv -> {
+            ReservationEntity e = inv.getArgument(0);
+            return new ReservationResponse(
+                    e.getId(), e.getConfirmationCode(), e.getStatus(),
+                    e.getRoom().getRoomType().getCode(), e.getRoom().getRoomNumber(),
+                    new ReservationResponse.RatePlanSummary(
+                            e.getRatePlan().getCode(), e.getRatePlan().isRefundable(),
+                            e.getRatePlan().isBreakfastIncluded()),
+                    e.getCheckIn(), e.getCheckOut(), e.getAdults(),
+                    e.getTotalPrice(), e.getCurrency(), e.getPriceBreakdown(), e.getSource());
+        });
 
         ReservationResponse response = service.cancelByGuest("ABCD1234", "jan@example.com");
 

@@ -124,7 +124,7 @@ class RateCalendarPriceProviderTest {
         when(roomTypeRepository.findById(3L)).thenReturn(Optional.of(roomType(3L, "STD")));
         when(roomRepository.countSellableByRoomTypeId(3L)).thenReturn(10L);
         when(reservationRepository.countOccupiedRoomsForTypeOn(3L, night)).thenReturn(2L);
-        when(pricingClient.fetchQuotes(any(PricingQuotesRequest.class))).thenReturn(Optional.empty());
+        when(pricingClient.fetchQuotesOnDemand(any(PricingQuotesRequest.class))).thenReturn(Optional.empty());
 
         List<NightlyBar> nights =
                 providerEnabled.resolveBars(3L, new BigDecimal("250.00"), night, LocalDate.of(2026, 10, 4));
@@ -142,7 +142,7 @@ class RateCalendarPriceProviderTest {
         when(roomTypeRepository.findById(4L)).thenReturn(Optional.of(roomType(4L, "DLX")));
         when(roomRepository.countSellableByRoomTypeId(4L)).thenReturn(5L);
         when(reservationRepository.countOccupiedRoomsForTypeOn(4L, night)).thenReturn(1L);
-        when(pricingClient.fetchQuotes(any(PricingQuotesRequest.class)))
+        when(pricingClient.fetchQuotesOnDemand(any(PricingQuotesRequest.class)))
                 .thenReturn(Optional.of(new PricingQuotesResponse(
                         "v1",
                         List.of(new PricingQuoteItemResponse(

@@ -7,17 +7,11 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from datagen.calendar import season_factor, weekday_factor
-from datagen.demand import (
-    NightDemand,
-    optimal_price_for_night,
-)
 from events.scoring.heuristic import heuristic_score
-
 
 # ---------------------------------------------------------------------------
 # Strategies

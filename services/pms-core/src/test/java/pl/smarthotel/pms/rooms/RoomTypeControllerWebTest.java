@@ -2,6 +2,7 @@ package pl.smarthotel.pms.rooms;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -15,8 +16,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,8 +29,14 @@ import pl.smarthotel.pms.common.web.PageResponse;
 import pl.smarthotel.pms.common.web.ProblemTypes;
 
 @WebMvcTest(controllers = RoomTypeController.class)
-@Import({GlobalExceptionHandler.class, CorrelationIdFilter.class})
+@Import({GlobalExceptionHandler.class, CorrelationIdFilter.class,
+        RoomTypeControllerWebTest.MethodSecurityTestConfig.class})
 class RoomTypeControllerWebTest {
+
+    @TestConfiguration
+    @EnableMethodSecurity
+    static class MethodSecurityTestConfig {}
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -41,6 +50,7 @@ class RoomTypeControllerWebTest {
     @WithMockUser(roles = "ADMIN")
     void createWithBlankCode_returns400WithValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/admin/room-types")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"code":"","name":"Deluxe","capacity":2,
@@ -56,6 +66,7 @@ class RoomTypeControllerWebTest {
     @WithMockUser(roles = "ADMIN")
     void createWithInvalidPriceBand_returns400() throws Exception {
         mockMvc.perform(post("/api/v1/admin/room-types")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"code":"ERR","name":"Bad Price","capacity":2,
@@ -69,6 +80,7 @@ class RoomTypeControllerWebTest {
     @WithMockUser(roles = "ADMIN")
     void createWithMissingRequired_returns400() throws Exception {
         mockMvc.perform(post("/api/v1/admin/room-types")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
@@ -87,6 +99,7 @@ class RoomTypeControllerWebTest {
     @Test
     void anonymousCreate_returns401() throws Exception {
         mockMvc.perform(post("/api/v1/admin/room-types")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"code":"NEW","name":"New","capacity":2,
@@ -111,6 +124,7 @@ class RoomTypeControllerWebTest {
     @WithMockUser(roles = "RECEPTIONIST")
     void receptionistCannotCreate_returns403() throws Exception {
         mockMvc.perform(post("/api/v1/admin/room-types")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"code":"NEW","name":"New","capacity":2,
@@ -132,6 +146,7 @@ class RoomTypeControllerWebTest {
         given(roomTypeService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/v1/admin/room-types")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"code":"DLX","name":"Deluxe","description":"Nice room",

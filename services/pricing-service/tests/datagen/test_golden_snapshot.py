@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 
 from datagen.cli import main
-from datagen.config import DatagenConfig
 
 CONFIGS = Path(__file__).resolve().parents[2] / "datagen" / "configs"
 GOLDEN_HASHES_FILE = Path(__file__).resolve().parent / "golden_hashes.json"
