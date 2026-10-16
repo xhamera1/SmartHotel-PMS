@@ -57,6 +57,9 @@ class ReservationServiceExclusionConstraintTest {
     @Mock
     private ConfirmationCodeGenerator confirmationCodeGenerator;
 
+    @Mock
+    private ReservationMapper reservationMapper;
+
     private ReservationService service;
 
     @BeforeEach
@@ -68,6 +71,7 @@ class ReservationServiceExclusionConstraintTest {
                 guestService,
                 priceProvider,
                 confirmationCodeGenerator,
+                reservationMapper,
                 Clock.fixed(Instant.parse("2026-10-01T10:00:00Z"), WARSAW),
                 WARSAW);
     }

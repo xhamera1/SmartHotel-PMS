@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,7 @@ import pl.smarthotel.pms.rooms.RoomTypeEntity;
 class ReservationRepositorySliceIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("pms_test")
             .withUsername("pms_test")
             .withPassword("pms_test");
@@ -69,14 +68,14 @@ class ReservationRepositorySliceIT {
         room1 = new RoomEntity();
         room1.setRoomNumber("SL01");
         room1.setRoomType(roomType);
-        room1.setFloor(1);
+        room1.setFloor((short) 1);
         room1.setStatus(RoomStatus.AVAILABLE);
         em.persistAndFlush(room1);
 
         room2 = new RoomEntity();
         room2.setRoomNumber("SL02");
         room2.setRoomType(roomType);
-        room2.setFloor(1);
+        room2.setFloor((short) 1);
         room2.setStatus(RoomStatus.AVAILABLE);
         em.persistAndFlush(room2);
 
@@ -99,7 +98,7 @@ class ReservationRepositorySliceIT {
         r.setAdults((short) 2);
         r.setTotalPrice(new BigDecimal("500.00"));
         r.setCurrency("PLN");
-        r.setPriceBreakdown(Map.of("nights", List.of(Map.of("date", checkIn.toString(), "price", 250))));
+        r.setPriceBreakdown(List.of());
         r.setSource(ReservationSource.ADMIN);
         return em.persistAndFlush(r);
     }

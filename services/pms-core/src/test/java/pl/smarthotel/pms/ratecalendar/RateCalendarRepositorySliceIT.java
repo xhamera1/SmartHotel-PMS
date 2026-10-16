@@ -24,7 +24,7 @@ import pl.smarthotel.pms.rooms.RoomTypeEntity;
 class RateCalendarRepositorySliceIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("pms_test")
             .withUsername("pms_test")
             .withPassword("pms_test");

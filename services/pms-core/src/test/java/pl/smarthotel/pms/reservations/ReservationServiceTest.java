@@ -60,6 +60,9 @@ class ReservationServiceTest {
     @Mock
     private ConfirmationCodeGenerator confirmationCodeGenerator;
 
+    @Mock
+    private ReservationMapper reservationMapper;
+
     private ReservationService service;
 
     @BeforeEach
@@ -73,6 +76,7 @@ class ReservationServiceTest {
                 guestService,
                 priceProvider,
                 confirmationCodeGenerator,
+                reservationMapper,
                 clock,
                 WARSAW);
     }
@@ -165,6 +169,7 @@ class ReservationServiceTest {
                 guestService,
                 priceProvider,
                 confirmationCodeGenerator,
+                reservationMapper,
                 clock,
                 WARSAW);
         ReservationEntity reservation = confirmedReservation(ratePlan("FLEX", true, "1.0000"));
@@ -211,6 +216,7 @@ class ReservationServiceTest {
                 guestService,
                 priceProvider,
                 confirmationCodeGenerator,
+                reservationMapper,
                 clock,
                 WARSAW);
 

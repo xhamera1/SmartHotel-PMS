@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -99,7 +100,7 @@ class RoomTypeControllerWebTest {
     @WithMockUser
     void listAllowedForAdminAndReceptionist(String role) throws Exception {
         given(roomTypeService.list(any(), any(), any(int.class), any(int.class)))
-                .willReturn(new PageResponse<>(List.of(), 0, 0, 20));
+                .willReturn(new PageResponse<>(List.of(), new PageResponse.PageMeta(0, 20, 0, 0)));
 
         mockMvc.perform(get("/api/v1/admin/room-types")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("u").roles(role)))
@@ -126,7 +127,8 @@ class RoomTypeControllerWebTest {
         RoomTypeResponse response = new RoomTypeResponse(
                 1L, "DLX", "Deluxe", "Nice room", (short) 2,
                 new BigDecimal("420.00"), new BigDecimal("300.00"), new BigDecimal("800.00"),
-                List.of("wifi", "minibar"), true);
+                "PLN", List.of("wifi", "minibar"), true,
+                Instant.parse("2026-10-01T10:00:00Z"), Instant.parse("2026-10-01T10:00:00Z"));
         given(roomTypeService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/v1/admin/room-types")

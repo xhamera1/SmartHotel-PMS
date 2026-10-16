@@ -18,7 +18,11 @@ export class RouteErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error(`RouteErrorBoundary [${this.props.section ?? 'unknown'}]`, error, info.componentStack)
+    console.error(
+      `RouteErrorBoundary [${this.props.section ?? 'unknown'}]`,
+      error,
+      info.componentStack,
+    )
   }
 
   render() {
@@ -35,13 +39,11 @@ export class RouteErrorBoundary extends Component<Props, State> {
           </Typography>
           <ProblemAlert
             fallback={this.state.error.message || t.common.pageCrashed}
-            title={this.props.section ? `Error in ${this.props.section}` : t.common.applicationError}
+            title={
+              this.props.section ? `Error in ${this.props.section}` : t.common.applicationError
+            }
           />
-          <Button
-            sx={{ mt: 2 }}
-            variant="contained"
-            onClick={() => this.setState({ error: null })}
-          >
+          <Button sx={{ mt: 2 }} variant="contained" onClick={() => this.setState({ error: null })}>
             {t.common.tryAgain}
           </Button>
         </Box>
