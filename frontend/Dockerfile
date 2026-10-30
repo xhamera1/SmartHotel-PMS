@@ -1,5 +1,5 @@
 # Multi-stage SPA build → nginx (compose profile app).
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
