@@ -27,6 +27,12 @@ def test_proximity_weight_none() -> None:
     assert proximity_weight(None) == 0.5
 
 
+def test_proximity_weight_decimal() -> None:
+    from decimal import Decimal
+
+    assert proximity_weight(Decimal("6.5")) == proximity_weight(6.5)
+
+
 def test_affected_nights_single_day() -> None:
     nights = affected_nights_for_event(date(2027, 6, 14), date(2027, 6, 14), score=50)
     assert nights == [date(2027, 6, 14)]

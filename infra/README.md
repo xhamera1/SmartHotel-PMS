@@ -24,5 +24,9 @@ docker compose --env-file .env -f infra/compose.yml --profile core down
 docker compose --env-file .env -f infra/compose.yml --profile core down --volumes
 ```
 
-Taskfile targets (`task up`, `task down`, `task smoke`) will wrap these commands
-in Phase 0, step 2.
+Taskfile targets: `task up`, `task down`, `task smoke`, `task up:app` (full stack).
+
+**Seeding:** do **not** apply Flyway SQL via `psql` by hand (`task seed` is a reminder only).
+`pms-core` with profile `dev`/`docker` runs Flyway `migration` + `seed` on startup.
+`task db-reset` wipes the volume so init + Flyway can run cleanly. Pricing schema:
+`task db-migrate:pricing`.

@@ -64,7 +64,8 @@ app:
     connect-timeout-ms: 1000
     read-timeout-ms: 3000
     batch-read-timeout-ms: 10000
-    refresh-horizon-days: 180
+    # 365 covers static fixture events through late 2027 when "today" is ~Oct 2026
+    refresh-horizon-days: ${PRICING_REFRESH_HORIZON_DAYS:180}
     refresh-chunk-size: 366
     on-demand-timeout-ms: 2000
   jwt:

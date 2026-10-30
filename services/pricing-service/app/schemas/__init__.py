@@ -81,6 +81,8 @@ class EventItem(ApiModel):
     ends_at: str | None = None
     impact_score: int | None = None
     distance_km: float | None = None
+    confidence: float | None = None
+    rationale: str | None = None
 
 
 class EventsResponse(ApiModel):

@@ -103,6 +103,8 @@ async def test_events_returns_items(client, auth_headers) -> None:
             "ends_at": datetime(2027, 7, 10, 23, 0, tzinfo=UTC),
             "impact_score": 72,
             "distance_km": 3.5,
+            "confidence": 0.6,
+            "rationale": "Large outdoor festival near the hotel.",
         },
     ]
     with patch("app.routers.events.fetch_events_range", return_value=mock_rows):
@@ -117,3 +119,5 @@ async def test_events_returns_items(client, auth_headers) -> None:
     assert items[0]["name"] == "Summer Festival"
     assert items[0]["impactScore"] == 72
     assert items[0]["distanceKm"] == 3.5
+    assert items[0]["confidence"] == 0.6
+    assert items[0]["rationale"] == "Large outdoor festival near the hotel."

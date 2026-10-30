@@ -92,11 +92,3 @@ def test_golden_datagen_snapshot(tmp_path: Path, request: pytest.FixtureRequest)
             "pytest tests/datagen/test_golden_snapshot.py --update-golden"
         )
 
-
-def pytest_addoption(parser: pytest.Parser) -> None:
-    parser.addoption(
-        "--update-golden",
-        action="store_true",
-        default=False,
-        help="Regenerate golden datagen hashes",
-    )

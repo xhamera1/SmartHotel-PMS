@@ -31,7 +31,9 @@ REST client (Resilience4j) — never on the guest booking path.
 Database:
 
 - `src/main/resources/db/migration/V1__baseline.sql` — schema (next migration **V3**).
-- `src/main/resources/db/seed/V2__seed_reference_data.sql` — dev/test seeds only.
+- `src/main/resources/db/seed/V2__seed_reference_data.sql` — dev/test seeds only
+  (applied by Flyway on `dev`/`docker`/`test`; never pipe these files into `psql`
+  outside Flyway — that bypasses `flyway_schema_history`).
 
 Profiles:
 

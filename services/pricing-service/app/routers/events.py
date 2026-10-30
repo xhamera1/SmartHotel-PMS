@@ -36,6 +36,8 @@ def list_events(
             else (str(row["ends_at"]) if row["ends_at"] is not None else None),
             impact_score=int(row["impact_score"]) if row["impact_score"] is not None else None,
             distance_km=float(row["distance_km"]) if row["distance_km"] is not None else None,
+            confidence=float(row["confidence"]) if row.get("confidence") is not None else None,
+            rationale=str(row["rationale"]) if row.get("rationale") is not None else None,
         )
         for row in rows
     ]

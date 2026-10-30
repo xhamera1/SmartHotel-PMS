@@ -19,7 +19,8 @@ def proximity_weight(distance_km: float | None) -> float:
     """``clamp(1 - distance_km/25, 0.2, 1.0)``."""
     if distance_km is None:
         return 0.5
-    raw = 1.0 - (distance_km / 25.0)
+    # Postgres NUMERIC arrives as Decimal via SQLAlchemy
+    raw = 1.0 - (float(distance_km) / 25.0)
     return max(0.2, min(1.0, raw))
 
 

@@ -14,7 +14,12 @@ from app.middleware.auth import InternalApiKeyMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import demand, events, health, internal, model, quotes
 from app.scheduler import start_scheduler, stop_scheduler
-from app.services.model_loader import ModelHolder, ModelState, load_active_model
+from app.services.model_loader import (
+    ModelHolder,
+    ModelSchemaMismatchError,
+    ModelState,
+    load_active_model,
+)
 from app.settings import DEFAULT_FIXTURE_MODEL, Settings, get_settings
 
 
@@ -52,10 +57,28 @@ def create_app(
                     fixture_dir=DEFAULT_FIXTURE_MODEL,
                     allow_fixture=settings_local.allow_fixture_model,
                 )
-                holder.set(state)
+            except ModelSchemaMismatchError:
+                # Schema drift is never recoverable without a code/artifact redeploy.
+                raise
             except Exception:
-                # DB may be down at startup; ready stays false until reload succeeds.
-                holder.set(None)
+                # DB may be down at startup — try fixture, else fail fast.
+                state = None
+                if settings_local.allow_fixture_model:
+                    from app.services.model_loader import load_fixture_model
+
+                    try:
+                        state = load_fixture_model(DEFAULT_FIXTURE_MODEL)
+                    except ModelSchemaMismatchError:
+                        raise
+                    except Exception:
+                        state = None
+            if state is None:
+                raise RuntimeError(
+                    "pricing-service failed to load a model at startup "
+                    "(registry empty/unreachable and fixture unavailable). "
+                    "Set ALLOW_FIXTURE_MODEL=true for local/demo or register an active model."
+                )
+            holder.set(state)
         start_scheduler(active_engine, settings_local)
         yield
         stop_scheduler()

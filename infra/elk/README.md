@@ -1,5 +1,12 @@
-# elk
+# Observability (compose profile `observability`)
 
-Observability config: `filebeat.yml` (Docker autodiscover, JSON log decoding) and
-Kibana saved objects (data views, saved searches, Ops Overview + Pricing Analytics
-dashboards) exported as ndjson. Built in Phase 10.
+Single-node Elasticsearch (1g heap) + Kibana + Filebeat Docker autodiscover.
+
+```powershell
+docker compose --env-file .env -f infra/compose.yml --profile observability up -d
+# Kibana: http://localhost:5601
+# Elasticsearch: http://localhost:9200
+```
+
+`filebeat.yml` ships JSON container logs into index pattern `smarthotel-*`.
+Keep this profile off during light local development (RAM).

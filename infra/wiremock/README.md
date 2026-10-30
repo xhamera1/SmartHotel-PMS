@@ -1,5 +1,11 @@
-# wiremock
+# WireMock stubs (compose profile `stubs`)
 
-WireMock stub mappings for external dependencies (Ticketmaster Discovery API, Gemini)
-used by the `stubs` compose profile. CI and E2E never call real external APIs (plan §5.1);
-live calls happen only in the manual `live-smoke.yml` workflow.
+Stub mappings for offline Ticketmaster Discovery and Gemini-shaped HTTP.
+
+```powershell
+docker compose --env-file .env -f infra/compose.yml --profile stubs up -d
+# WireMock: http://localhost:8089
+```
+
+Point pricing at stubs when exercising Ticketmaster/Gemini clients without live keys
+(adapter base URLs / env — prefer `EVENT_PROVIDER=static` for default demos).

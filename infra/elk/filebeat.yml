@@ -1,0 +1,28 @@
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      templates:
+        - condition:
+            contains:
+              docker.container.name: smarthotel
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              json.keys_under_root: true
+              json.add_error_key: true
+
+processors:
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "smarthotel-%{+yyyy.MM.dd}"
+
+setup.ilm.enabled: false
+setup.template.name: "smarthotel"
+setup.template.pattern: "smarthotel-*"
+
+logging.level: info

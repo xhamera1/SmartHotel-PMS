@@ -92,8 +92,8 @@ public class PricingProxyController {
                 start,
                 end,
                 impact,
-                null,
-                null,
+                item.confidence(),
+                item.rationale(),
                 "pricing-service");
     }
 

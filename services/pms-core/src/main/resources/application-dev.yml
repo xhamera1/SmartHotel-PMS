@@ -29,6 +29,7 @@ app:
     enabled: ${PRICING_ENABLED:true}
     base-url: ${PRICING_BASE_URL:http://localhost:8081}
     api-key: ${PRICING_API_KEY:dev-internal-api-key}
+    refresh-horizon-days: ${PRICING_REFRESH_HORIZON_DAYS:180}
   jwt:
     secret: ${JWT_SECRET:change-me-generate-a-256-bit-secret-min-32-chars}
 

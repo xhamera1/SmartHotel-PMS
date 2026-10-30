@@ -40,6 +40,12 @@ tasks:
     cmds:
       - '{{.COMPOSE}} --profile core up -d --wait'
 
+  up:app:
+    desc: Start full app stack (postgres + pricing + pms + frontend nginx)
+    deps: [env]
+    cmds:
+      - '{{.COMPOSE}} --profile app up -d --build --wait'
+
   down:
     desc: Stop core infrastructure (the data volume is preserved)
     cmds:
@@ -192,13 +198,8 @@ tasks:
       - pnpm dev
 
   seed:
-    desc: Apply pms schema + dev seeds to the dev database (interim, until the Phase 2 app runs Flyway itself)
+    desc: Reminder — pms-core Flyway applies schema + dev seeds on startup (do not pipe SQL by hand)
     deps: [up]
     cmds:
-      # NOTE: applies the Flyway SQL manually (no flyway_schema_history). Before the
-      # first pms-core application start (Phase 2), run `task db-reset` so Flyway
-      # can take ownership of the pms schema from scratch.
-      - docker exec -i smarthotel-postgres psql -q -U postgres -d smarthotel -v ON_ERROR_STOP=1 -f - < services/pms-core/src/main/resources/db/migration/V1__baseline.sql
-      - docker exec -i smarthotel-postgres psql -q -U postgres -d smarthotel -v ON_ERROR_STOP=1 -f - < services/pms-core/src/main/resources/db/seed/V2__seed_reference_data.sql
-      - cmd: echo "pms schema + dev seeds applied (3 room types, 35 rooms, 3 rate plans, 2 staff users)"
+      - cmd: echo "Seeds are owned by Flyway (dev/docker/test profiles load classpath:db/seed). Start pms-core once: task run:pms. For a clean slate: task db-reset then task run:pms. Pricing schema: task db-migrate:pricing."
         silent: true

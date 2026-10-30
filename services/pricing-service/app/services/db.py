@@ -26,26 +26,47 @@ def fetch_demand_by_dates(engine: sa.Engine, dates: set[date]) -> dict[date, Dem
     if not dates:
         return {}
     with engine.connect() as connection:
-        rows = connection.execute(
-            sa.text(
-                """
-                SELECT date, indicator
-                FROM pricing.daily_demand
-                WHERE date = ANY(:dates)
-                """
-            ),
-            {"dates": list(dates)},
-        ).mappings()
+        demand_rows = list(
+            connection.execute(
+                sa.text(
+                    """
+                    SELECT date, indicator, top_event_ids
+                    FROM pricing.daily_demand
+                    WHERE date = ANY(:dates)
+                    """
+                ),
+                {"dates": list(dates)},
+            ).mappings()
+        )
+        all_ids: list[int] = []
+        for row in demand_rows:
+            all_ids.extend(int(i) for i in (row["top_event_ids"] or []))
+        latest_scores: dict[int, int] = {}
+        if all_ids:
+            score_rows = connection.execute(
+                sa.text(
+                    """
+                    SELECT DISTINCT ON (event_id) event_id, impact_score
+                    FROM pricing.event_scores
+                    WHERE event_id = ANY(:ids)
+                    ORDER BY event_id, scored_at DESC
+                    """
+                ),
+                {"ids": list(set(all_ids))},
+            ).mappings()
+            latest_scores = {int(r["event_id"]): int(r["impact_score"]) for r in score_rows}
+
         result: dict[date, DemandSnapshot] = {}
-        for row in rows:
+        for row in demand_rows:
             day = row["date"]
             if hasattr(day, "isoformat"):
                 day = date.fromisoformat(day.isoformat())
-            indicator = int(row["indicator"])
+            top_ids = [int(i) for i in (row["top_event_ids"] or [])]
+            scores = [latest_scores[i] for i in top_ids if i in latest_scores]
             result[day] = DemandSnapshot(
-                indicator=indicator,
-                event_count_active=1 if indicator > 0 else 0,
-                max_event_score=indicator,
+                indicator=int(row["indicator"]),
+                event_count_active=len(top_ids),
+                max_event_score=max(scores) if scores else 0,
             )
         return result
 
@@ -72,10 +93,10 @@ def fetch_events_range(engine: sa.Engine, start: date, end: date) -> list[dict[s
             sa.text(
                 """
                 SELECT e.id, e.name, e.category, e.starts_at, e.ends_at, e.distance_km,
-                       s.impact_score
+                       s.impact_score, s.confidence, s.rationale
                 FROM pricing.events e
                 LEFT JOIN LATERAL (
-                    SELECT impact_score
+                    SELECT impact_score, confidence, rationale
                     FROM pricing.event_scores es
                     WHERE es.event_id = e.id
                     ORDER BY es.scored_at DESC

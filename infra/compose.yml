@@ -47,9 +47,84 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  # Later phases register services here:
-  #   frontend (Phase 3)
-  #   wiremock [stubs] · elasticsearch/kibana/filebeat [observability] (Phase 10)
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+        VITE_LOCALE: ${VITE_LOCALE:-pl-PL}
+    container_name: smarthotel-frontend
+    profiles: ["app"]
+    ports:
+      - "${FRONTEND_HOST_PORT:-8088}:80"
+    depends_on:
+      pms-core:
+        condition: service_healthy
+    restart: unless-stopped
+
+  wiremock:
+    image: wiremock/wiremock:3.12.1
+    container_name: smarthotel-wiremock
+    profiles: ["stubs"]
+    command: ["--global-response-templating", "--verbose"]
+    ports:
+      - "${WIREMOCK_HOST_PORT:-8089}:8080"
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings:ro
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
+    container_name: smarthotel-elasticsearch
+    profiles: ["observability"]
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms1g -Xmx1g}
+    ports:
+      - "${ES_HOST_PORT:-9200}:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://127.0.0.1:9200/_cluster/health || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.3
+    container_name: smarthotel-kibana
+    profiles: ["observability"]
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "${KIBANA_HOST_PORT:-5601}:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.17.3
+    container_name: smarthotel-filebeat
+    profiles: ["observability"]
+    user: root
+    command: ["filebeat", "-e", "-strict.perms=false"]
+    volumes:
+      - ./elk/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
 
   pms-core:
     build:
@@ -66,7 +141,7 @@ services:
       PRICING_BASE_URL: http://pricing-service:8081
       PRICING_API_KEY: ${INTERNAL_API_KEY:-dev-internal-api-key}
       PRICING_ENABLED: ${PRICING_ENABLED:-true}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8088}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       TZ: Europe/Warsaw
     ports:
@@ -101,7 +176,7 @@ services:
       ALLOW_FIXTURE_MODEL: "true"
       EVENT_PROVIDER: ${EVENT_PROVIDER:-static}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY:-}
       HOTEL_LAT: ${HOTEL_LAT:-50.068369}
       HOTEL_LON: ${HOTEL_LON:-19.924854}
@@ -130,3 +205,5 @@ services:
 volumes:
   pgdata:
     name: smarthotel-pgdata
+  esdata:
+    name: smarthotel-esdata

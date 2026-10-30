@@ -1,0 +1,8 @@
+{
+  "bookings.parquet": "2c8f8cc9e491b290c34ca1a2772265affdbb01f97020a6cae8fb32e6cc4c0ba8",
+  "calendar.parquet": "661f888807f731a9faa209ac370c199ea4a9ecc3b88e2c7fa33c050c6a7ed8fc",
+  "config_hash": "2860fb66bb3a96d7a4222fa2140a420a598c8b754723c86df31934c1a90822c8",
+  "events.parquet": "8d11d3be4d8e8204840e5fba314b45a5c0a5e402af7140155a0e42d4a6e597eb",
+  "nights.parquet": "20d92b2eae74aad7ed51e0b690276a183d25c400d8af866947341c724d7d3b60",
+  "snapshots.parquet": "f50d7f1646b604c7f25c476da968f8b1ddcb6503de6b6682ee29ccaf804c39f0"
+}

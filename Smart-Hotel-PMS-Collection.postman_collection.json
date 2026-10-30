@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "e2ba2834-cd6f-4e44-b8de-6d9601d7f9af",
     "name": "SmartHotel-PMS",
-    "description": "Pełna kolekcja API SmartHotel-PMS (fazy 0–7).\n\n**Jak zacząć**\n1. Upewnij się, że działają: `task up`, `task run:pms` (:8080), `task run:pricing` (:8081).\n2. Sprawdź zmienne kolekcji (Variables).\n3. Folder **00 — Quick smoke** — szybka ścieżka weryfikacji.\n4. Auth staff: uruchom **PMS › Auth › Login (admin)** — skrypt zapisze `accessToken`.\n\n**Auth**\n- PMS admin: `Authorization: Bearer {{accessToken}}`\n- Pricing: `X-Internal-Api-Key: {{internalApiKey}}`\n\n**Seedowe konta**\n- admin@smarthotel.local / admin-dev-password\n- reception@smarthotel.local / reception-dev-password",
+    "description": "Pełna kolekcja API SmartHotel-PMS (fazy 0–8).\n\n**Jak zacząć**\n1. Upewnij się, że działają: `task up`, `task run:pms` (:8080), `task run:pricing` (:8081).\n2. Sprawdź zmienne kolekcji (Variables).\n3. Folder **00 — Quick smoke** — pricing + login + Phase 8 refresh + booking.\n4. Auth staff: Login (admin) zapisuje `accessToken`.\n\n**Auth**\n- PMS admin: `Authorization: Bearer {{accessToken}}`\n- Pricing: `X-Internal-Api-Key: {{internalApiKey}}`\n\n**Seedowe konta**\n- admin@smarthotel.local / admin-dev-password\n- reception@smarthotel.local / reception-dev-password\n\n**Phase 8:** `POST /api/v1/admin/pricing/refresh` wypełnia rate calendar; booking czyta kalendarz (fallback gdy pricing down).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -33,7 +33,7 @@
   "item": [
     {
       "name": "00 — Quick smoke",
-      "description": "Uruchamiaj po kolei (Run folder). Weryfikuje pricing + publiczny booking + login.",
+      "description": "Uruchamiaj po kolei (Run folder). Pricing + login + Phase 8 refresh/proxy + availability/booking. Resilience demo: po refresh zatrzymaj pricing i powtórz booking — powinno nadal przejść z kalendarza/BASE.",
       "item": [
         {
           "name": "1. Pricing health ready",
@@ -151,7 +151,50 @@
           }
         },
         {
-          "name": "7. Public availability",
+          "name": "7. Admin pricing refresh (Phase 8)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{pmsBaseUrl}}/api/v1/admin/pricing/refresh",
+            "description": "Wymaga tokenu z kroku 6. Oczekuj status OK i daysUpdated > 0."
+          }
+        },
+        {
+          "name": "8. Admin rate calendar sample",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{pmsBaseUrl}}/api/v1/admin/rate-calendar?roomTypeCode={{roomTypeCode}}&from={{checkIn}}&to={{checkOut}}",
+              "host": ["{{pmsBaseUrl}}"],
+              "path": ["api", "v1", "admin", "rate-calendar"],
+              "query": [
+                { "key": "roomTypeCode", "value": "{{roomTypeCode}}" },
+                { "key": "from", "value": "{{checkIn}}" },
+                { "key": "to", "value": "{{checkOut}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "9. Admin pricing events proxy",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{pmsBaseUrl}}/api/v1/admin/pricing/events?from={{fromDate}}&to={{toDate}}",
+              "host": ["{{pmsBaseUrl}}"],
+              "path": ["api", "v1", "admin", "pricing", "events"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" }
+              ]
+            },
+            "description": "Proxy do pricing-service; oczekuj confidence/rationale gdy eventy są scored."
+          }
+        },
+        {
+          "name": "10. Public availability",
           "request": {
             "method": "GET",
             "header": [],
@@ -165,6 +208,35 @@
                 { "key": "guests", "value": "{{guests}}" }
               ]
             }
+          }
+        },
+        {
+          "name": "11. Public book (guest checkout)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.confirmationCode) {",
+                  "    pm.collectionVariables.set('confirmationCode', body.confirmationCode);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomTypeCode\": \"{{roomTypeCode}}\",\n  \"ratePlanCode\": \"{{ratePlanCode}}\",\n  \"checkIn\": \"{{checkIn}}\",\n  \"checkOut\": \"{{checkOut}}\",\n  \"adults\": 2,\n  \"guest\": {\n    \"firstName\": \"Jan\",\n    \"lastName\": \"Kowalski\",\n    \"email\": \"{{guestEmail}}\",\n    \"phone\": \"+48123456789\"\n  }\n}"
+            },
+            "url": "{{pmsBaseUrl}}/api/v1/reservations",
+            "description": "Po refresh ceny z rate_calendar. Fallback: zatrzymaj pricing i powtórz — booking nadal OK."
           }
         }
       ]

@@ -17,6 +17,10 @@ from ml.features import FEATURE_SCHEMA_HASH
 logger = logging.getLogger(__name__)
 
 
+class ModelSchemaMismatchError(RuntimeError):
+    """Active/fixture model feature_schema_hash does not match the serving code."""
+
+
 @dataclass(frozen=True)
 class ModelState:
     version: str
@@ -103,16 +107,16 @@ def load_active_model(
     if row is not None:
         schema_hash = str(row["feature_schema_hash"])
         if schema_hash != FEATURE_SCHEMA_HASH:
-            logger.error(
-                "active model schema hash mismatch: registry=%s expected=%s",
-                schema_hash,
-                FEATURE_SCHEMA_HASH,
+            msg = (
+                f"active model schema hash mismatch: registry={schema_hash} "
+                f"expected={FEATURE_SCHEMA_HASH}"
             )
-            return None
+            logger.error(msg)
+            raise ModelSchemaMismatchError(msg)
         artifact = Path(str(row["artifact_path"]))
         if not artifact.is_file():
             logger.error("active model artifact missing: %s", artifact)
-            return None
+            raise FileNotFoundError(f"active model artifact missing: {artifact}")
         metrics = row["metrics"] if isinstance(row["metrics"], dict) else {}
         pipeline = load_pipeline_from_artifact(artifact)
         return ModelState(
@@ -143,8 +147,9 @@ def load_fixture_model(fixture_dir: Path) -> ModelState | None:
     metadata = json.loads(meta_path.read_text(encoding="utf-8"))
     schema_hash = str(metadata.get("feature_schema_hash", ""))
     if schema_hash != FEATURE_SCHEMA_HASH:
-        logger.error("fixture schema hash mismatch: %s", schema_hash)
-        return None
+        msg = f"fixture schema hash mismatch: {schema_hash} expected={FEATURE_SCHEMA_HASH}"
+        logger.error(msg)
+        raise ModelSchemaMismatchError(msg)
     metrics = metadata.get("metrics") if isinstance(metadata.get("metrics"), dict) else {}
     pipeline = load_pipeline_from_artifact(model_path)
     return ModelState(

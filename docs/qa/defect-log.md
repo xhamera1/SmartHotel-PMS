@@ -98,3 +98,134 @@ Severity scale: `Critical` (data loss / security), `High` (feature broken),
   provided by infra init (dev) or Flyway `schemas=pms` as DB owner (tests).
 - **Regression guard:** `PmsCoreApplicationIT` + migration ITs; local
   `spring-boot:run` with Compose after a clean volume.
+
+## DEF-0006 — Property test rejected valid winter season_factor near floor
+
+- **Date:** 2026-10-30 · **Phase:** 4 · **Found by:** unit (pytest / Hypothesis)
+- **Severity:** Medium
+- **Symptom:** `test_season_factor_bounded` failed for
+  `season_factor(2020-01-07, amplitude=1.0) ≈ 0.0066` (assertion required `> 0.1`).
+- **Root cause:** With amplitude 1.0 the sinusoid can approach 0; production code
+  deliberately clamps with `max(..., 1e-3)`. The property test used a tighter
+  lower bound than the implemented contract, while configs only use amplitude ≤ 0.35.
+- **Resolution:** Assert `1e-3 <= result < 5.0` for the full amplitude domain;
+  added `test_season_factor_business_amplitude_range` for amplitude ≤ 0.5 expecting
+  `[0.2, 3.0]`. Season formula unchanged (avoids datagen golden drift).
+- **Regression guard:** both Hypothesis tests in `tests/datagen/test_properties.py`.
+
+## DEF-0007 — Sync pipeline skipped scoring new/changed events on empty cache query
+
+- **Date:** 2026-10-30 · **Phase:** 7 · **Found by:** unit
+  (`tests/events/test_sync.py::test_sync_pipeline_with_mocked_deps`)
+- **Severity:** High
+- **Symptom:** `events_to_score == 0` despite upsert returning
+  `is_new_or_changed=True`.
+- **Root cause:** After upsert, sync filtered candidates with
+  `events_needing_scoring`. When that query returned an empty set (or a mock
+  engine yielded no rows), new/changed events were treated as cache hits and
+  skipped — content changes never forced a rescore.
+- **Resolution:** Always score `is_new_or_changed` events; use the cache query
+  only to pick up unchanged events that lack a score for the current
+  prompt/model. Summary still reports cache hits for unchanged+scored rows.
+- **Regression guard:** `test_sync_pipeline_with_mocked_deps`.
+
+## DEF-0008 — README project status lagged behind Phase 8 delivery
+
+- **Date:** 2026-10-30 · **Phase:** docs · **Found by:** review / status audit
+- **Severity:** Low
+- **Symptom:** Root README still described “foundation / Phase 1–2” while the
+  codebase had completed Track A+B and Phase 8 integration.
+- **Root cause:** Status prose was not updated after pricing, frontend, and
+  integration landed.
+- **Resolution:** README “Project status” now states Phases 0–8 complete and
+  links `docs/current-status-30-october.md`.
+- **Regression guard:** status doc + README cross-check on future phase exits.
+
+## DEF-0009 — Admin events proxy dropped LLM confidence and rationale
+
+- **Date:** 2026-10-30 · **Phase:** 8 · **Found by:** review / status audit
+- **Severity:** Medium
+- **Symptom:** Admin Events UI always showed empty confidence/rationale; PMS mapped
+  `null, null` in `PricingProxyController.toEventResponse`.
+- **Root cause:** Pricing `GET /events` did not expose score metadata; PMS DTO
+  lacked fields and hard-coded nulls.
+- **Resolution:** Pricing returns `confidence` + `rationale` from latest
+  `event_scores`; `PricingEventItem` + proxy map them through; OpenAPI regenerated.
+- **Regression guard:** `test_events_returns_items` asserts both fields.
+
+## DEF-0010 — Quote serving approximated event features from demand indicator
+
+- **Date:** 2026-10-30 · **Phase:** 6 · **Found by:** review / status audit
+- **Severity:** Medium
+- **Symptom:** `event_count_active` / `max_event_score` in quotes were derived as
+  `1 if indicator>0` / `indicator`, diverging from training features.
+- **Root cause:** `fetch_demand_by_dates` only selected `indicator`.
+- **Resolution:** Join `top_event_ids` with latest event scores; count and max
+  impact drive the snapshot.
+- **Regression guard:** `tests/domain/test_demand_snapshots.py`.
+
+## DEF-0011 — Datagen golden hashes were never committed
+
+- **Date:** 2026-10-30 · **Phase:** 4 · **Found by:** review / status audit
+- **Severity:** Medium
+- **Symptom:** `golden_hashes.json` missing; reproducibility gate could not fail CI
+  on generator drift until first local create-and-skip run.
+- **Root cause:** Initial golden file never committed after Phase 4.
+- **Resolution:** Committed `tests/datagen/golden_hashes.json` from tiny config.
+- **Regression guard:** `test_golden_datagen_snapshot` compares committed hashes.
+
+## DEF-0012 — Pricing startup soft-failed on model schema mismatch
+
+- **Date:** 2026-10-30 · **Phase:** 6 · **Found by:** review (plan Phase 6 exit)
+- **Severity:** High
+- **Symptom:** Schema hash mismatch logged and left `ready=false` instead of
+  failing the process; easy to miss in ops.
+- **Root cause:** `load_active_model` returned `None` on mismatch; lifespan
+  swallowed load errors.
+- **Resolution:** Raise `ModelSchemaMismatchError` on hash mismatch; lifespan
+  fail-fast if no model can be loaded (fixture still allowed for local/demo).
+- **Regression guard:** `tests/api/test_model_loader_fail_fast.py`.
+
+## DEF-0013 — Manual `task seed` bypassed Flyway history
+
+- **Date:** 2026-10-30 · **Phase:** 2 · **Found by:** review / status audit
+- **Severity:** Medium
+- **Symptom:** Taskfile `seed` piped V1/V2 SQL via `psql`, creating schema/seed
+  without `flyway_schema_history` — risk of duplicate objects or Flyway checksum
+  fights on next app start.
+- **Root cause:** Interim Phase-0 seed task never retired after Flyway ownership.
+- **Resolution:** `task seed` is now a reminder; docs in `infra/README` and
+  `pms-core/README` state Flyway owns migrations+seeds.
+- **Regression guard:** documented workflow (`db-reset` → `run:pms`).
+
+## DEF-0014 — Compose `app` profile had no frontend; stubs/ELK were README-only
+
+- **Date:** 2026-10-30 · **Phase:** 3/9/10 · **Found by:** status audit
+- **Severity:** Medium
+- **Symptom:** Full-stack demo required separate `pnpm dev`; WireMock/ELK profiles
+  documented but absent from `compose.yml`.
+- **Root cause:** Services deferred after Phase 8 integration focused on APIs.
+- **Resolution:** `frontend` nginx multi-stage image on profile `app`; WireMock
+  mappings + `stubs` service; ES/Kibana/Filebeat on `observability`; `task up:app`.
+- **Regression guard:** `docker compose … config --quiet`; CI compose `app` build.
+
+## DEF-0015 — Default Gemini model string was not a current Flash pin
+
+- **Date:** 2026-10-30 · **Phase:** 7 · **Found by:** review (R1 / status audit)
+- **Severity:** Medium
+- **Symptom:** Defaults used `gemini-3.8-flash`, which does not match the plan’s
+  Flash-class pin and risks live-smoke failures.
+- **Root cause:** Placeholder string never updated after Phase 7.
+- **Resolution:** Default `GEMINI_MODEL=gemini-2.5-flash` across settings, compose,
+  `.env.example`, live-smoke, ADR-0011.
+- **Regression guard:** ADR-0011 pin note; live-smoke uses env default.
+
+## DEF-0016 — Rate-calendar refresh horizon defaulted to 365 vs plan 180
+
+- **Date:** 2026-10-30 · **Phase:** 8 · **Found by:** status audit
+- **Severity:** Low
+- **Symptom:** Default `PRICING_REFRESH_HORIZON_DAYS` was 365 (plan §3.4 / Phase 8: 180).
+- **Resolution:** Defaults in `application.yml` / `application-dev.yml` set to 180;
+  env override still supported. Admin URL layout under `/admin/pricing/*` kept
+  (FE already wired); OpenAPI tag description updated.
+- **Regression guard:** config defaults + OpenApiConfig tag text.

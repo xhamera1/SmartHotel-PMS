@@ -217,22 +217,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trivy scan — pms-core Dockerfile
+      - name: Trivy scan — pms-core
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
           scan-ref: services/pms-core
           severity: HIGH,CRITICAL
-          exit-code: '0'
+          exit-code: '1'
           format: table
 
-      - name: Trivy scan — pricing-service Dockerfile
+      - name: Trivy scan — pricing-service
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
           scan-ref: services/pricing-service
           severity: HIGH,CRITICAL
-          exit-code: '0'
+          exit-code: '1'
+          format: table
+
+      - name: Trivy scan — frontend
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: frontend
+          severity: HIGH,CRITICAL
+          exit-code: '1'
           format: table
 
       - name: Gitleaks secret scan
@@ -248,7 +257,7 @@ jobs:
         run: |
           corepack enable pnpm
           pnpm install --frozen-lockfile
-          pnpm audit --audit-level=high || true
+          pnpm audit --audit-level=high
 
   # ---------------------------------------------------------------------------
   # Aggregate (informational — nightly failures are not blocking)

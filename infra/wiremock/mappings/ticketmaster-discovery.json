@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/discovery/v2/events.json"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "_embedded": {
+        "events": [
+          {
+            "id": "tm-stub-001",
+            "name": "Stub Concert at Tauron Arena",
+            "url": "https://example.test/events/tm-stub-001",
+            "dates": {
+              "start": { "dateTime": "2027-06-14T19:00:00Z" },
+              "end": { "dateTime": "2027-06-14T22:00:00Z" }
+            },
+            "classifications": [{ "segment": { "name": "Music" } }],
+            "_embedded": {
+              "venues": [
+                {
+                  "name": "Tauron Arena Kraków",
+                  "city": { "name": "Kraków" },
+                  "location": { "latitude": "50.0675", "longitude": "19.9917" }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "page": { "size": 20, "totalElements": 1, "totalPages": 1, "number": 0 }
+    }
+  }
+}

@@ -59,6 +59,17 @@
             ],
             "title": "Category"
           },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
           "distanceKm": {
             "anyOf": [
               {
@@ -99,6 +110,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
           },
           "startsAt": {
             "title": "Startsat",

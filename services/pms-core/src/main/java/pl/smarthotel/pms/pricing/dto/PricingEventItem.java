@@ -1,5 +1,7 @@
 package pl.smarthotel.pms.pricing.dto;
 
+import java.math.BigDecimal;
+
 public record PricingEventItem(
         long id,
         String name,
@@ -7,4 +9,6 @@ public record PricingEventItem(
         String startsAt,
         String endsAt,
         Integer impactScore,
-        Double distanceKm) {}
+        Double distanceKm,
+        BigDecimal confidence,
+        String rationale) {}

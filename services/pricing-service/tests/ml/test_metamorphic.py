@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import pytest
@@ -15,6 +17,9 @@ from ml.pipeline import build_random_forest_pipeline
 # Soft mono tolerance: RF is not a monotone model; allow tiny numeric/tree jitter.
 MONO_TOL = 0.05
 ORDER_TOL = 1e-9
+FIXTURE_MODEL = (
+    Path(__file__).resolve().parents[2] / "fixtures" / "models" / "tiny" / "model.joblib"
+)
 
 
 def _synthetic_snapshots(days: int = 180) -> tuple[pd.DataFrame, pd.Series]:
@@ -57,8 +62,7 @@ def _synthetic_snapshots(days: int = 180) -> tuple[pd.DataFrame, pd.Series]:
     return build_feature_frame(rows), pd.Series(targets, name="price_multiplier")
 
 
-@pytest.fixture(scope="module")
-def fitted_rf() -> Pipeline:
+def _fit_synthetic_rf() -> Pipeline:
     X, y = _synthetic_snapshots()
     pipeline = build_random_forest_pipeline(random_state=42, n_jobs=1).set_params(
         regressor__n_estimators=80,
@@ -68,6 +72,66 @@ def fitted_rf() -> Pipeline:
     )
     pipeline.fit(X, y)
     return pipeline
+
+
+def _fixture_passes_demand_canary(model: Pipeline) -> bool:
+    """Tiny shipped models may not encode mono demand — fall back to synthetic."""
+    low = float(
+        model.predict(
+            build_feature_frame(
+                [
+                    build_feature_row(
+                        stay_date=date(2024, 6, 15),
+                        lead_time_days=14,
+                        occupancy_rate=0.4,
+                        rooms_remaining=12,
+                        base_price=250.0,
+                        room_type="STD",
+                        demand_indicator=0,
+                        event_count_active=0,
+                        max_event_score=0,
+                    )
+                ]
+            )
+        )[0]
+    )
+    high = float(
+        model.predict(
+            build_feature_frame(
+                [
+                    build_feature_row(
+                        stay_date=date(2024, 6, 15),
+                        lead_time_days=14,
+                        occupancy_rate=0.4,
+                        rooms_remaining=12,
+                        base_price=250.0,
+                        room_type="STD",
+                        demand_indicator=90,
+                        event_count_active=1,
+                        max_event_score=90,
+                    )
+                ]
+            )
+        )[0]
+    )
+    return high >= low - MONO_TOL
+
+
+@pytest.fixture(scope="module")
+def fitted_rf() -> Pipeline:
+    if FIXTURE_MODEL.is_file():
+        model = joblib.load(FIXTURE_MODEL)
+        if hasattr(model, "predict") and _fixture_passes_demand_canary(model):
+            return model
+    return _fit_synthetic_rf()
+
+
+@pytest.fixture(scope="module")
+def shipped_fixture_rf() -> Pipeline | None:
+    if not FIXTURE_MODEL.is_file():
+        return None
+    model = joblib.load(FIXTURE_MODEL)
+    return model if hasattr(model, "predict") else None
 
 
 def _base_row(**overrides: object) -> dict[str, object]:
@@ -127,6 +191,16 @@ def test_mr3_shorter_lead_with_high_occupancy_does_not_decrease(fitted_rf: Pipel
         lead_time_days=1,
     )
     assert near >= far - MONO_TOL
+
+
+def test_shipped_fixture_model_predicts(shipped_fixture_rf: Pipeline | None) -> None:
+    """Regression: committed tiny artifact loads and predicts a batch."""
+    if shipped_fixture_rf is None:
+        pytest.skip("fixture model missing")
+    frame = build_feature_frame([_base_row()])
+    preds = shipped_fixture_rf.predict(frame)
+    assert len(preds) == 1
+    assert np.isfinite(preds[0])
 
 
 def test_mr4_predictions_permutation_invariant(fitted_rf: Pipeline) -> None:

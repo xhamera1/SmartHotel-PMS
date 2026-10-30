@@ -27,8 +27,8 @@ the exact free-tier model string may change under a student licence.
 - Scores aggregate into a **DemandIndicator** 0–100 per HotelNight.
 - On error/quota: **heuristic fallback** scorer; rows flagged `is_fallback=true`.
 - Prompt text and model id are **versioned and stored** with every score.
-- **Exact model string is deferred** until Phase 7 — chosen from whatever Flash-class
-  model remains free under Google AI Studio / student access, then pinned in config.
+- **Pinned model (2026-10-30):** `gemini-2.5-flash` via `GEMINI_MODEL` (`.env`,
+  compose, `app.settings`). Re-pin and re-run E3 if Google retires the string.
 - Live Gemini calls only in manual `live-smoke` / thesis experiments; CI always stubs.
 
 ### Consequences

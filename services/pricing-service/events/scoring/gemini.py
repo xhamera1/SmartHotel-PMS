@@ -56,7 +56,7 @@ class GeminiScorer(EventScorer):
         self,
         *,
         api_key: str,
-        model: str = "gemini-3.8-flash",
+        model: str = "gemini-2.5-flash",
         prompt_version: str = "event-impact-v1",
         budget_check: Any = None,
     ) -> None:

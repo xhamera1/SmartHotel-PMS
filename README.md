@@ -48,10 +48,13 @@ tools/                cross-platform developer scripts
 
 ## Project status
 
-Foundation complete: repository governance, CI pipeline bootstrap, and containerized
-PostgreSQL with isolated per-service schemas. Phase 1–2 deliver the PMS core API
-(auth, booking, admin). **frontend** has a Vite/React scaffold (`task run:frontend`);
-pricing service and remaining Track B phases follow.
+**Phases 0–8 complete:** monorepo/CI, PMS core (auth, booking, admin), React SPA
+(admin + public booking), synthetic datagen + RF training, pricing-service API,
+event intelligence (static/Ticketmaster + Gemini/heuristic), and PMS↔pricing
+integration (rate-calendar refresh, Resilience4j fallbacks). **Next:** Phase 9–14
+(Playwright E2E, ELK, k6, release hardening, thesis experiments, defense demo).
+
+Detailed snapshot: [`docs/current-status-30-october.md`](docs/current-status-30-october.md).
 
 ## Getting started
 

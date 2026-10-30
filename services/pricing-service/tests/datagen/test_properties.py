@@ -47,9 +47,24 @@ def test_season_factor_always_positive(day: date, amplitude: float) -> None:
 @given(day=reasonable_dates, amplitude=amplitudes)
 @settings(max_examples=200)
 def test_season_factor_bounded(day: date, amplitude: float) -> None:
-    """Season factor should stay within a reasonable range [0.2, 3.0]."""
+    """Season factor stays above the code floor (1e-3) and below a soft upper bound.
+
+    With amplitude=1 the sinusoid can approach 0 in mid-winter; ``season_factor``
+    clamps with ``max(..., 1e-3)`` so demand stays strictly positive.
+    """
     result = season_factor(day, amplitude)
-    assert 0.1 < result < 5.0, f"season_factor({day}, {amplitude}) = {result}"
+    assert 1e-3 <= result < 5.0, f"season_factor({day}, {amplitude}) = {result}"
+
+
+@given(
+    day=reasonable_dates,
+    amplitude=st.floats(min_value=0.0, max_value=0.5, allow_nan=False),
+)
+@settings(max_examples=200)
+def test_season_factor_business_amplitude_range(day: date, amplitude: float) -> None:
+    """Configs use amplitude ≤ 0.5 (default 0.35) — stay in a hotel-sensible band."""
+    result = season_factor(day, amplitude)
+    assert 0.2 <= result <= 3.0, f"season_factor({day}, {amplitude}) = {result}"
 
 
 # ---------------------------------------------------------------------------

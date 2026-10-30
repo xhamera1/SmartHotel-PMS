@@ -46,7 +46,10 @@ public class OpenApiConfig {
                         new Tag().name("Admin — Dashboard").description("ADMIN or RECEPTIONIST"),
                         new Tag()
                                 .name("Admin — Pricing proxies")
-                                .description("Phase 8 stubs until pricing-service is wired")))
+                                .description(
+                                        "Live Phase 8 integration: rate-calendar refresh, "
+                                                + "events and demand proxies to pricing-service "
+                                                + "(/api/v1/admin/pricing/*)")))
                 .components(new Components()
                         .addSecuritySchemes(
                                 BEARER_JWT,

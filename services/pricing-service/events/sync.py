@@ -90,43 +90,60 @@ class SyncPipeline:
         summary["events_upserted"] = len(upsert_results)
         summary["events_stale"] = stale_count
 
-        # 3. Score new/changed events — skip those already scored with
-        # the current prompt_version + llm_model (LLM response cache, D9)
+        # 3. Score events that are new/changed (content_hash) OR that lack a
+        # score for the current prompt_version + llm_model (LLM cache, D9).
+        # New/changed content always rescored — cache hits only apply to
+        # unchanged rows that already have a matching score.
         events_by_eid = {e.external_id: e for e in events}
+        upsert_by_eid = {r["external_id"]: r for r in upsert_results}
         to_score: list[NormalizedEvent] = []
         to_score_db_ids: dict[str, int] = {}
+        already_scored_eids: set[str] = set()
 
-        # Determine which events actually need scoring (cache check)
         primary_model = (
             self._settings.gemini_model if self._settings.gemini_api_key else "heuristic"
         )
-        already_scored_eids: set[str] = set()
+        needing_by_eid: dict[str, dict] = {}
         try:
             needing = events_needing_scoring(
                 self._engine,
                 prompt_version=self._settings.prompt_version,
                 llm_model=primary_model,
             )
-            needing_eids = {r["external_id"] for r in needing}
+            needing_by_eid = {r["external_id"]: r for r in needing}
         except Exception:
             logger.warning("Cache check query failed — scoring all new/changed events")
-            needing_eids = None
+            needing_by_eid = {}
 
+        candidate_eids: set[str] = set()
         for result in upsert_results:
             eid = result["external_id"]
-            if not result.get("is_new_or_changed"):
-                continue
-            if eid not in events_by_eid:
-                continue
-            # Skip if already scored with matching prompt+model (cache hit)
-            if needing_eids is not None and eid not in needing_eids:
+            if result.get("is_new_or_changed") and eid in events_by_eid:
+                candidate_eids.add(eid)
+            elif (
+                not result.get("is_new_or_changed")
+                and eid in needing_by_eid
+                and eid in events_by_eid
+            ):
+                # Unchanged content but prompt/model cache miss → rescore.
+                candidate_eids.add(eid)
+            elif not result.get("is_new_or_changed") and eid in events_by_eid:
                 already_scored_eids.add(eid)
-                continue
+
+        # Also score events returned by the cache query that were not in this
+        # fetch batch's upsert list (defensive — normally overlapping).
+        for eid, row in needing_by_eid.items():
+            if eid in events_by_eid and eid not in candidate_eids:
+                candidate_eids.add(eid)
+                if eid not in upsert_by_eid:
+                    upsert_by_eid[eid] = {"id": row["id"], "external_id": eid}
+
+        for eid in candidate_eids:
             to_score.append(events_by_eid[eid])
-            to_score_db_ids[eid] = result["id"]
+            to_score_db_ids[eid] = int(upsert_by_eid[eid]["id"])
 
         summary["events_to_score"] = len(to_score)
-        summary["events_cache_hit"] = len(already_scored_eids)
+        summary["events_cache_hit"] = len(already_scored_eids - candidate_eids)
 
         if to_score:
             scorers = _build_scorers(self._settings, self._budget)
