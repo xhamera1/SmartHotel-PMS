@@ -24,7 +24,7 @@ stateDiagram-v2
 |---|------------|-------|--------|--------------|
 | T1 | `[*] → CONFIRMED` | Guest (public booking) or staff (admin) | Room of the requested type free for the whole Stay (DB exclusion constraint is the final arbiter); `adults ≤ capacity`; RatePlan active | Concrete room assigned; total price computed from rate calendar (fallback `base_price`) × rate-plan modifier and snapshotted into `price_breakdown`; confirmation code generated; guest deduplicated by email |
 | T2 | `CONFIRMED → CHECKED_IN` | Staff | Business date (Europe/Warsaw) ≥ `check_in` and < `check_out` | — |
-| T3 | `CONFIRMED → CANCELLED` (guest) | Guest via confirmation code + email | Business date < `check_in`; **RatePlan is refundable** (ADR-0007) | Room released (exclusion constraint only covers active statuses) |
+| T3 | `CONFIRMED → CANCELLED` (guest) | Guest via confirmation code + email | Business date ≤ `check_in` (same-day OK while still CONFIRMED); **RatePlan is refundable** (ADR-0007) | Room released (exclusion constraint only covers active statuses) |
 | T4 | `CONFIRMED → CANCELLED` (staff) | Staff | none (staff may always cancel a CONFIRMED reservation) | Room released |
 | T5 | `CONFIRMED → NO_SHOW` | Night-audit job (scheduled) | Business date > `check_in` and status still `CONFIRMED` | Room released; WARN logged |
 | T6 | `CHECKED_IN → CHECKED_OUT` | Staff | none | Room released |

@@ -138,11 +138,13 @@ public class ReservationService {
         ReservationStateMachine.guard(reservation.getStatus(), ReservationAction.CANCEL_GUEST);
 
         LocalDate today = businessDate();
-        if (!today.isBefore(reservation.getCheckIn())) {
+        // Allow cancel through the check-in calendar day while still CONFIRMED
+        // (same-day bookings can self-cancel until staff check-in / night audit).
+        if (today.isAfter(reservation.getCheckIn())) {
             throw new ApplicationException.ConflictException(
                     ProblemTypes.ILLEGAL_STATE_TRANSITION,
                     "Illegal state transition",
-                    "Guest cancellation is only allowed before the check-in date");
+                    "Guest cancellation is only allowed on or before the check-in date");
         }
         if (!reservation.getRatePlan().isRefundable()) {
             throw new ApplicationException.ConflictException(

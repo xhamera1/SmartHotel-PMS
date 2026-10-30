@@ -229,3 +229,35 @@ Severity scale: `Critical` (data loss / security), `High` (feature broken),
   env override still supported. Admin URL layout under `/admin/pricing/*` kept
   (FE already wired); OpenAPI tag description updated.
 - **Regression guard:** config defaults + OpenApiConfig tag text.
+
+## DEF-0017 — Same-day guest booking could never self-cancel
+
+- **Date:** 2026-10-30 · **Phase:** 2/3 · **Found by:** manual (guest cancel 409)
+- **Severity:** High
+- **Symptom:** `POST …/reservations/{code}/cancel` returned 409
+  `illegal-state-transition` (“only allowed before the check-in date”) for
+  confirmation `3KBDTVD3` with `check_in = today` (Europe/Warsaw). UI still showed
+  Cancel for any CONFIRMED refundable stay.
+- **Root cause:** Guard used `today < check_in` (state-machine table T3). Public
+  search allows check-in = today, so a same-day booking was immediately past the
+  cancel window. FE did not mirror the date cut-off.
+- **Resolution:** Guest cancel allowed while `today ≤ check_in` and status still
+  `CONFIRMED`; reject only after the check-in calendar day. FE hides Cancel and
+  shows `cancelWindowClosed` when hotel today > check-in. Diagram T3 updated.
+- **Regression guard:** `shouldAllowGuestCancelOnCheckInDateWhenStillConfirmed`,
+  `shouldRejectGuestCancelAfterCheckInDate`.
+
+## DEF-0018 — Guest cancel showed both success and “already cancelled”
+
+- **Date:** 2026-10-30 · **Phase:** 3 · **Found by:** manual (manage booking UX)
+- **Severity:** Low
+- **Symptom:** After a successful cancel, Manage Booking showed both
+  “Rezerwacja została anulowana.” and “Ta rezerwacja jest już anulowana.”
+  Cancel ran immediately on button click (no confirmation).
+- **Root cause:** `onSuccess` wrote `CANCELLED` into the lookup cache, so the
+  static `status === 'CANCELLED'` info alert rendered alongside
+  `cancelMutation.isSuccess`.
+- **Resolution:** Show `alreadyCancelled` only when cancelled and not just
+  cancelled in this session; open a confirm dialog before calling cancel.
+- **Regression guard:** `already-cancelled` vs `cancel-success` mutual exclusion
+  on ManageBookingPage; `cancel-confirm-dialog` before mutate.

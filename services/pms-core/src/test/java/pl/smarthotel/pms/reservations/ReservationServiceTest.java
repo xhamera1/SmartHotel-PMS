@@ -170,9 +170,9 @@ class ReservationServiceTest {
     }
 
     @Test
-    void shouldRejectGuestCancelOnOrAfterCheckInDate() {
-        // today = 2026-10-03 == check_in
-        Clock clock = Clock.fixed(Instant.parse("2026-10-03T08:00:00Z"), WARSAW);
+    void shouldRejectGuestCancelAfterCheckInDate() {
+        // today = 2026-10-04 > check_in (2026-10-03)
+        Clock clock = Clock.fixed(Instant.parse("2026-10-04T08:00:00Z"), WARSAW);
         service = new ReservationService(
                 reservationRepository,
                 ratePlanRepository,
@@ -191,6 +191,41 @@ class ReservationServiceTest {
                 .isInstanceOf(ApplicationException.ConflictException.class)
                 .extracting(ex -> ((ApplicationException) ex).getProblemType())
                 .isEqualTo(ProblemTypes.ILLEGAL_STATE_TRANSITION);
+    }
+
+    @Test
+    void shouldAllowGuestCancelOnCheckInDateWhenStillConfirmed() {
+        // today = 2026-10-03 == check_in — same-day booking must still be cancellable
+        Clock clock = Clock.fixed(Instant.parse("2026-10-03T08:00:00Z"), WARSAW);
+        service = new ReservationService(
+                reservationRepository,
+                ratePlanRepository,
+                roomTypeRepository,
+                guestService,
+                priceProvider,
+                confirmationCodeGenerator,
+                reservationMapper,
+                clock,
+                WARSAW);
+        ReservationEntity reservation = confirmedReservation(ratePlan("FLEX", true, "1.0000"));
+        when(reservationRepository.findByConfirmationCodeAndGuestEmailIgnoreCase("ABCD1234", "jan@example.com"))
+                .thenReturn(Optional.of(reservation));
+        when(reservationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(reservationMapper.toResponse(any(ReservationEntity.class))).thenAnswer(inv -> {
+            ReservationEntity e = inv.getArgument(0);
+            return new ReservationResponse(
+                    e.getId(), e.getConfirmationCode(), e.getStatus(),
+                    e.getRoom().getRoomType().getCode(), e.getRoom().getRoomNumber(),
+                    new ReservationResponse.RatePlanSummary(
+                            e.getRatePlan().getCode(), e.getRatePlan().isRefundable(),
+                            e.getRatePlan().isBreakfastIncluded()),
+                    e.getCheckIn(), e.getCheckOut(), e.getAdults(),
+                    e.getTotalPrice(), e.getCurrency(), e.getPriceBreakdown(), e.getSource());
+        });
+
+        ReservationResponse response = service.cancelByGuest("ABCD1234", "jan@example.com");
+
+        assertThat(response.status()).isEqualTo(ReservationStatus.CANCELLED);
     }
 
     @Test

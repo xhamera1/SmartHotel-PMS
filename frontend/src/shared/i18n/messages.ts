@@ -133,7 +133,11 @@ export type Messages = {
     cancelBooking: string
     cancelNonRefundable: string
     cancelFailed: string
+    cancelWindowClosed: string
     cancelSuccess: string
+    cancelConfirmTitle: string
+    cancelConfirmBody: string
+    cancelConfirmAction: string
     summaryTitle: string
     code: string
     room: string
@@ -378,7 +382,13 @@ export const messagesByLocale: Record<AppLocale, Messages> = {
       cancelBooking: 'Anuluj rezerwację',
       cancelNonRefundable: 'Taryfa tej rezerwacji nie pozwala na anulowanie online.',
       cancelFailed: 'Anulowanie nie powiodło się.',
+      cancelWindowClosed:
+        'Anulowanie online jest dostępne tylko do dnia zameldowania włącznie. Skontaktuj się z recepcją.',
       cancelSuccess: 'Rezerwacja została anulowana.',
+      cancelConfirmTitle: 'Anulować rezerwację?',
+      cancelConfirmBody:
+        'Tej operacji nie można cofnąć. Po anulowaniu pokój wróci do puli dostępnych.',
+      cancelConfirmAction: 'Tak, anuluj',
       summaryTitle: 'Podsumowanie rezerwacji',
       code: 'Kod',
       room: 'Pokój',
@@ -622,7 +632,13 @@ export const messagesByLocale: Record<AppLocale, Messages> = {
       cancelBooking: 'Cancel booking',
       cancelNonRefundable: 'This rate plan does not allow online cancellation.',
       cancelFailed: 'Cancellation failed.',
+      cancelWindowClosed:
+        'Online cancellation is only available on or before the check-in date. Please contact reception.',
       cancelSuccess: 'The booking was cancelled.',
+      cancelConfirmTitle: 'Cancel this booking?',
+      cancelConfirmBody:
+        'This cannot be undone. After cancellation the room returns to available inventory.',
+      cancelConfirmAction: 'Yes, cancel',
       summaryTitle: 'Booking summary',
       code: 'Code',
       room: 'Room',

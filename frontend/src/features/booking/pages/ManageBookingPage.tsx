@@ -1,7 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -17,6 +29,7 @@ import {
 } from '@/features/booking/schemas/bookingSchemas'
 import { isProblemType } from '@/shared/api/problem'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { todayHotelDate } from '@/shared/lib/hotelDates'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { PageSkeleton } from '@/shared/ui/PageSkeleton'
 import { ProblemAlert } from '@/shared/ui/ProblemAlert'
@@ -25,6 +38,7 @@ export function ManageBookingPage() {
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
   const { t } = useI18n()
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const codeParam = params.get('code') ?? ''
   const emailParam = params.get('email') ?? ''
 
@@ -50,14 +64,33 @@ export function ManageBookingPage() {
   const cancelMutation = useMutation({
     mutationFn: () => cancelReservation(codeParam, emailParam),
     onSuccess: (reservation) => {
+      setConfirmOpen(false)
       if (lookupKey) {
         queryClient.setQueryData(lookupKey, reservation)
       }
     },
   })
+  const resetCancel = cancelMutation.reset
+
+  useEffect(() => {
+    resetCancel()
+    setConfirmOpen(false)
+  }, [codeParam, emailParam, resetCancel])
 
   const reservation = lookupQuery.data
-  const canCancel = reservation?.status === 'CONFIRMED' && reservation.ratePlan?.refundable === true
+  const hotelToday = todayHotelDate()
+  const withinCancelWindow =
+    Boolean(reservation?.checkIn) && hotelToday <= (reservation?.checkIn ?? '')
+  const canCancel =
+    reservation?.status === 'CONFIRMED' &&
+    reservation.ratePlan?.refundable === true &&
+    withinCancelWindow
+  const cancelWindowClosed =
+    reservation?.status === 'CONFIRMED' &&
+    reservation.ratePlan?.refundable === true &&
+    !withinCancelWindow
+  const showAlreadyCancelled =
+    reservation?.status === 'CANCELLED' && !cancelMutation.isSuccess
 
   return (
     <BookingLayout>
@@ -122,13 +155,21 @@ export function ManageBookingPage() {
         <Stack spacing={2}>
           <ReservationSummary reservation={reservation} />
 
-          {reservation.status === 'CANCELLED' ? (
-            <Alert severity="info">{t.booking.alreadyCancelled}</Alert>
+          {showAlreadyCancelled ? (
+            <Alert severity="info" data-testid="already-cancelled">
+              {t.booking.alreadyCancelled}
+            </Alert>
           ) : null}
 
           {reservation.status === 'CONFIRMED' && reservation.ratePlan?.refundable === false ? (
             <Alert severity="warning" data-testid="non-refundable-notice">
               {t.booking.nonRefundableNotice}
+            </Alert>
+          ) : null}
+
+          {cancelWindowClosed ? (
+            <Alert severity="info" data-testid="cancel-window-closed">
+              {t.booking.cancelWindowClosed}
             </Alert>
           ) : null}
 
@@ -138,10 +179,10 @@ export function ManageBookingPage() {
                 color="secondary"
                 variant="outlined"
                 disabled={cancelMutation.isPending}
-                onClick={() => cancelMutation.mutate()}
+                onClick={() => setConfirmOpen(true)}
                 data-testid="cancel-booking"
               >
-                {cancelMutation.isPending ? t.booking.cancelling : t.booking.cancelBooking}
+                {t.booking.cancelBooking}
               </Button>
             </Box>
           ) : null}
@@ -165,6 +206,36 @@ export function ManageBookingPage() {
           ) : null}
         </Stack>
       ) : null}
+
+      <Dialog
+        open={confirmOpen}
+        onClose={() => (cancelMutation.isPending ? undefined : setConfirmOpen(false))}
+        aria-labelledby="cancel-confirm-title"
+        data-testid="cancel-confirm-dialog"
+      >
+        <DialogTitle id="cancel-confirm-title">{t.booking.cancelConfirmTitle}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{t.booking.cancelConfirmBody}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setConfirmOpen(false)}
+            disabled={cancelMutation.isPending}
+            data-testid="cancel-confirm-dismiss"
+          >
+            {t.common.cancel}
+          </Button>
+          <Button
+            color="secondary"
+            variant="contained"
+            disabled={cancelMutation.isPending}
+            onClick={() => cancelMutation.mutate()}
+            data-testid="cancel-confirm-submit"
+          >
+            {cancelMutation.isPending ? t.booking.cancelling : t.booking.cancelConfirmAction}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </BookingLayout>
   )
 }
