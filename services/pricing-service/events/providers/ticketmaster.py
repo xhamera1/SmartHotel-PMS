@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from events.attendance_priors import estimate_attendance
 from events.models import NormalizedEvent
 from events.providers.base import EventProvider
 
@@ -71,7 +72,7 @@ class TicketmasterProvider(EventProvider):
         hotel_lat: float,
         hotel_lon: float,
         radius_km: float = 15.0,
-        horizon_days: int = 120,
+        horizon_days: int = 365,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         if not api_key:
@@ -181,13 +182,19 @@ class TicketmasterProvider(EventProvider):
                 return None
 
         # Discovery rarely exposes capacity. Never use priceRanges.max — that is
-        # ticket price currency, not seats. Heuristic applies category priors when None.
+        # ticket price currency, not seats.
         seatmap = raw.get("seatmap") or {}
         attendance = _safe_int(seatmap.get("totalCapacity")) or _safe_int(seatmap.get("capacity"))
         if attendance is None:
             attendance = _safe_int(venue.get("capacity"))
 
         category = _map_category(raw.get("classifications"))
+        if attendance is None:
+            attendance, _ = estimate_attendance(
+                category=category,
+                venue_name=venue_name,
+                event_name=name,
+            )
 
         return NormalizedEvent(
             provider="ticketmaster",

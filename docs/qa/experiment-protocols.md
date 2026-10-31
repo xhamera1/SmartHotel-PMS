@@ -38,7 +38,7 @@ source of synthetic ground truth (see `docs/qa/dataset-spec.md`).
 |-------|--------|
 | **Hypothesis** | Gemini structured scores correlate with synthetic true uplift better than heuristic fallback alone; repeatable at production temperature. |
 | **Data** | Synthetic event descriptions from Phase 4 (~60/year × years in tiny/default); known true uplift in datagen. |
-| **Model pin** | `GEMINI_MODEL` from `.env` (default `gemini-2.5-flash`); do not mix model strings mid-window. |
+| **Model pin** | `GEMINI_MODEL` from `.env` (default `gemini-3.8-flash`); do not mix model strings mid-window. |
 | **Metrics** | Spearman ρ vs true uplift; MAE on normalised scale; per-event std over 5 repeats; paraphrase stability; injection canary pass rate; latency p50/p95; fallback rate. |
 | **Success** | Injection canaries blocked (schema+clamp); ρ reported honestly; operational stats logged. Live calls only via `live-smoke.yml` / `@pytest.mark.external`. |
 | **Artifacts** | Cached `event_scores.response_raw`; analysis CSV under `artifacts/experiments/llm-eval/`. |

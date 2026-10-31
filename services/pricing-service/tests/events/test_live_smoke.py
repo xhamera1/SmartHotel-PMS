@@ -68,7 +68,7 @@ async def test_gemini_live_score() -> None:
         raw_payload={"test": True},
     )
 
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
     scorer = GeminiScorer(api_key=api_key, model=model)
     results = await scorer.score([event])
 

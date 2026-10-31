@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # --- Event intelligence (Phase 7) ---
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
-    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
+    gemini_model: str = Field(default="gemini-3.8-flash", alias="GEMINI_MODEL")
     prompt_version: str = Field(default="event-impact-v1", alias="PROMPT_VERSION")
     gemini_daily_call_budget: int = Field(default=200, alias="GEMINI_DAILY_CALL_BUDGET")
     ticketmaster_api_key: str = Field(default="", alias="TICKETMASTER_API_KEY")
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     hotel_lat: float = Field(default=50.068369, alias="HOTEL_LAT")
     hotel_lon: float = Field(default=19.924854, alias="HOTEL_LON")
     event_radius_km: float = Field(default=15.0, alias="EVENT_RADIUS_KM")
-    event_horizon_days: int = Field(default=120, alias="EVENT_HORIZON_DAYS")
+    event_horizon_days: int = Field(default=365, alias="EVENT_HORIZON_DAYS")
 
     # --- Scheduler (Phase 7) ---
     event_sync_schedule_enabled: bool = Field(default=True, alias="EVENT_SYNC_SCHEDULE_ENABLED")

@@ -27,8 +27,9 @@ the exact free-tier model string may change under a student licence.
 - Scores aggregate into a **DemandIndicator** 0–100 per HotelNight.
 - On error/quota: **heuristic fallback** scorer; rows flagged `is_fallback=true`.
 - Prompt text and model id are **versioned and stored** with every score.
-- **Pinned model (2026-10-30):** `gemini-2.5-flash` via `GEMINI_MODEL` (`.env`,
-  compose, `app.settings`). Re-pin and re-run E3 if Google retires the string.
+- **Pinned model (2026-10-31):** `gemini-3.8-flash` via `GEMINI_MODEL` (`.env`,
+  compose, `app.settings`). Google retired `gemini-2.5-flash` for new users;
+  re-pin and re-run E3 if the string changes again.
 - Live Gemini calls only in manual `live-smoke` / thesis experiments; CI always stubs.
 
 ### Consequences

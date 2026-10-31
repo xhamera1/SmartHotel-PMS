@@ -276,3 +276,18 @@ Severity scale: `Critical` (data loss / security), `High` (feature broken),
   price ranges as attendance; rationale marks `(assumed)`.
 - **Regression guard:** `test_heuristic_score_missing_attendance_uses_category_prior`,
   `test_ticketmaster_ignores_price_range_as_attendance`.
+
+## DEF-0020 — Flat TM scores + short calendar horizon
+
+- **Date:** 2026-10-31 · **Phase:** 7 · **Found by:** manual (admin Events)
+- **Severity:** Medium
+- **Symptom:** Live TM impacts clustered ~21–29; calendar past ~120 days only
+  showed leftover `static` fixtures. Gemini pin `gemini-2.5-flash` 404 for new
+  keys; 30s batch timeout tripped often.
+- **Root cause:** Same category prior for every club show; `EVENT_HORIZON_DAYS=120`;
+  retired Gemini model string + tight timeouts.
+- **Resolution:** Venue/name attendance priors (`attendance_priors.py`); horizon
+  365; pin `gemini-3.8-flash`; Gemini batch 10 / timeout 90s. Static fixtures kept
+  for demo uplift.
+- **Regression guard:** `test_heuristic_score_venue_prior_raises_arena_above_club_default`,
+  `test_ticketmaster_venue_prior_for_arena`, `test_attendance_priors`.

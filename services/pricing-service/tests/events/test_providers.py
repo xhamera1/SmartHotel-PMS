@@ -104,7 +104,7 @@ async def test_ticketmaster_provider_pagination() -> None:
     assert events[0].external_id == "tm-001"
     assert events[0].category == "MUSIC"
     assert events[0].distance_km is not None
-    assert events[0].expected_attendance is None
+    assert events[0].expected_attendance == 2500
 
 
 @pytest.mark.asyncio
@@ -153,7 +153,54 @@ async def test_ticketmaster_ignores_price_range_as_attendance() -> None:
             events = await provider.fetch_events()
 
     assert len(events) == 1
-    assert events[0].expected_attendance is None
+    # Capacity missing → category prior, never priceRanges.max (250 PLN).
+    assert events[0].expected_attendance == 2500
+    assert events[0].expected_attendance != 250
+
+
+@pytest.mark.asyncio
+async def test_ticketmaster_venue_prior_for_arena() -> None:
+    respx = pytest.importorskip("respx")
+    import httpx
+
+    from events.providers.ticketmaster import TicketmasterProvider
+
+    page_data = {
+        "_embedded": {
+            "events": [
+                {
+                    "id": "tm-arena",
+                    "name": "Arena Headliner",
+                    "dates": {"start": {"dateTime": "2027-06-14T19:00:00Z"}},
+                    "_embedded": {
+                        "venues": [
+                            {
+                                "name": "Tauron Arena Kraków",
+                                "city": {"name": "Kraków"},
+                                "location": {"latitude": "50.065", "longitude": "20.010"},
+                            }
+                        ]
+                    },
+                    "classifications": [{"segment": {"name": "Music"}}],
+                }
+            ]
+        },
+        "page": {"totalPages": 1, "number": 0},
+    }
+
+    async with respx.mock:
+        respx.get("https://app.ticketmaster.com/discovery/v2/events.json").mock(
+            return_value=httpx.Response(200, json=page_data)
+        )
+        async with httpx.AsyncClient() as client:
+            events = await TicketmasterProvider(
+                api_key="test-key",
+                hotel_lat=50.068369,
+                hotel_lon=19.924854,
+                client=client,
+            ).fetch_events()
+
+    assert events[0].expected_attendance == 18000
 
 
 @pytest.mark.asyncio

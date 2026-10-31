@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import re
 from datetime import date
 from typing import Any, Literal
 
@@ -17,11 +18,14 @@ from events.scoring.prompt import build_user_prompt, load_system_prompt
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 20
+BATCH_SIZE = 10
 MAX_RETRIES = 3
-BACKOFF_BASE = 0.5
-TIMEOUT_SECONDS = 30
+BACKOFF_BASE = 1.0
+TIMEOUT_SECONDS = 90
 CIRCUIT_BREAKER_THRESHOLD = 3
+# Free-tier Gemini is ~5 generateContent RPM; pace batches to stay under the ceiling.
+INTER_BATCH_DELAY_SECONDS = 13
+DEFAULT_RATE_LIMIT_WAIT_SECONDS = 45
 
 try:
     import google.genai as genai
@@ -56,9 +60,10 @@ class GeminiScorer(EventScorer):
         self,
         *,
         api_key: str,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-3.8-flash",
         prompt_version: str = "event-impact-v1",
         budget_check: Any = None,
+        inter_batch_delay: float | None = None,
     ) -> None:
         if not api_key:
             raise ValueError("Gemini API key is required")
@@ -66,6 +71,9 @@ class GeminiScorer(EventScorer):
         self._model = model
         self._prompt_version = prompt_version
         self._budget_check = budget_check
+        self._inter_batch_delay = (
+            INTER_BATCH_DELAY_SECONDS if inter_batch_delay is None else inter_batch_delay
+        )
         self._consecutive_failures = 0
         self._system_prompt: str | None = None
 
@@ -100,6 +108,9 @@ class GeminiScorer(EventScorer):
                 self._consecutive_failures = 0
             else:
                 self._consecutive_failures += 1
+
+            if i + BATCH_SIZE < len(events) and self._inter_batch_delay > 0:
+                await asyncio.sleep(self._inter_batch_delay)
 
         return results
 
@@ -177,7 +188,16 @@ class GeminiScorer(EventScorer):
                     await asyncio.sleep(BACKOFF_BASE * (2**attempt))
                     continue
                 return None
-            except Exception:
+            except Exception as exc:
+                wait = _rate_limit_wait_seconds(exc)
+                if wait is not None and attempt < MAX_RETRIES:
+                    logger.warning(
+                        "Gemini rate-limited on attempt %d — sleeping %.0fs",
+                        attempt + 1,
+                        wait,
+                    )
+                    await asyncio.sleep(wait)
+                    continue
                 logger.exception("Gemini scoring error on attempt %d", attempt + 1)
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(BACKOFF_BASE * (2**attempt))
@@ -185,3 +205,16 @@ class GeminiScorer(EventScorer):
                 return None
 
         return None
+
+
+def _rate_limit_wait_seconds(exc: BaseException) -> float | None:
+    """Return sleep seconds for HTTP 429 / RESOURCE_EXHAUSTED, else None."""
+    status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    message = str(exc)
+    if status != 429 and "RESOURCE_EXHAUSTED" not in message and "429" not in message:
+        return None
+    # "Please retry in 37.797s" from Google free-tier errors
+    match = re.search(r"retry in\s+(\d+(?:\.\d+)?)\s*s", message, flags=re.IGNORECASE)
+    if match:
+        return float(match.group(1)) + 1.0
+    return float(DEFAULT_RATE_LIMIT_WAIT_SECONDS)

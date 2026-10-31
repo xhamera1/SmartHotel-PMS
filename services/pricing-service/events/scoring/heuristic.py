@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 
+from events.attendance_priors import estimate_attendance
 from events.models import EventScoreResult, NormalizedEvent
 from events.scoring.base import EventScorer
 
@@ -15,26 +16,25 @@ CATEGORY_BASE: dict[str, int] = {
     "CULTURE": 30,
 }
 DEFAULT_CATEGORY_BASE = 35
-# Ticketmaster Discovery rarely exposes capacity; use category priors so
-# missing attendance does not collapse impact to ~0 (attendance_factor = 1/5000).
-CATEGORY_DEFAULT_ATTENDANCE: dict[str, int] = {
-    "MUSIC": 2500,
-    "SPORTS": 10000,
-    "CONFERENCE": 2000,
-    "CULTURE": 1200,
-}
-DEFAULT_ATTENDANCE = 1500
 DISTANCE_SCALE_KM = 15.0
 ATTENDANCE_DIVISOR = 5000.0
 MAX_ATTENDANCE_FACTOR = 2.0
 
 
-def resolve_attendance(category: str | None, expected_attendance: int | None) -> tuple[int, bool]:
-    """Return (attendance, assumed). Assumed when provider left capacity unknown."""
-    if expected_attendance is not None and expected_attendance > 0:
-        return expected_attendance, False
-    cat = (category or "").upper()
-    return CATEGORY_DEFAULT_ATTENDANCE.get(cat, DEFAULT_ATTENDANCE), True
+def resolve_attendance(
+    category: str | None,
+    expected_attendance: int | None,
+    *,
+    venue_name: str | None = None,
+    event_name: str | None = None,
+) -> tuple[int, bool]:
+    """Return (attendance, assumed) using venue/category priors when capacity is missing."""
+    return estimate_attendance(
+        category=category,
+        expected_attendance=expected_attendance,
+        venue_name=venue_name,
+        event_name=event_name,
+    )
 
 
 def heuristic_score(
@@ -42,6 +42,8 @@ def heuristic_score(
     category: str | None,
     expected_attendance: int | None,
     distance_km: float | None,
+    venue_name: str | None = None,
+    event_name: str | None = None,
 ) -> int:
     """
     Compute a heuristic impact score.
@@ -49,7 +51,12 @@ def heuristic_score(
     ``score = category_base * attendance_factor * exp(-distance_km / 15)``
     """
     base = CATEGORY_BASE.get((category or "").upper(), DEFAULT_CATEGORY_BASE)
-    attendance, _ = resolve_attendance(category, expected_attendance)
+    attendance, _ = resolve_attendance(
+        category,
+        expected_attendance,
+        venue_name=venue_name,
+        event_name=event_name,
+    )
     att_factor = min(MAX_ATTENDANCE_FACTOR, attendance / ATTENDANCE_DIVISOR)
     dist = max(0.0, distance_km if distance_km is not None else 10.0)
     decay = math.exp(-dist / DISTANCE_SCALE_KM)
@@ -82,10 +89,15 @@ class HeuristicScorer(EventScorer):
                 category=event.category,
                 expected_attendance=event.expected_attendance,
                 distance_km=event.distance_km,
+                venue_name=event.venue_name,
+                event_name=event.name,
             )
             nights = _affected_nights(event, impact)
             attendance, assumed = resolve_attendance(
-                event.category, event.expected_attendance
+                event.category,
+                event.expected_attendance,
+                venue_name=event.venue_name,
+                event_name=event.name,
             )
             att_label = (
                 f"~{attendance} attendance (assumed)"

@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from events.models import NormalizedEvent
-from events.scoring.gemini import GeminiScorer
+from events.scoring.gemini import GeminiScorer, _rate_limit_wait_seconds
 
 
 def _make_event(eid: str = "g-001", name: str = "Test Event") -> NormalizedEvent:
@@ -60,7 +60,7 @@ async def test_gemini_scorer_valid_response() -> None:
         mock_genai.Client.return_value = mock_client
         mock_genai.types = MagicMock()
 
-        scorer = GeminiScorer(api_key="test-key", model="test-model")
+        scorer = GeminiScorer(api_key="test-key", model="test-model", inter_batch_delay=0)
         results = await scorer.score([_make_event()])
 
     assert len(results) == 1
@@ -95,7 +95,7 @@ async def test_gemini_scorer_batch_split() -> None:
         mock_genai.Client.return_value = mock_client
         mock_genai.types = MagicMock()
 
-        scorer = GeminiScorer(api_key="test-key")
+        scorer = GeminiScorer(api_key="test-key", inter_batch_delay=0)
         results = await scorer.score(events)
 
     # At least one batch was scored
@@ -113,7 +113,7 @@ async def test_gemini_scorer_circuit_breaker() -> None:
         mock_genai.Client.return_value = mock_client
         mock_genai.types = MagicMock()
 
-        scorer = GeminiScorer(api_key="test-key")
+        scorer = GeminiScorer(api_key="test-key", inter_batch_delay=0)
         events = [_make_event(eid=f"g-{i}") for i in range(5)]
 
         results = await scorer.score(events)
@@ -128,6 +128,19 @@ async def test_gemini_scorer_quota_check() -> None:
     scorer = GeminiScorer(
         api_key="test-key",
         budget_check=lambda: False,
+        inter_batch_delay=0,
     )
     results = await scorer.score([_make_event()])
     assert results == []
+
+
+def test_rate_limit_wait_parses_retry_hint() -> None:
+    class Fake429(Exception):
+        status_code = 429
+
+    wait = _rate_limit_wait_seconds(
+        Fake429("Please retry in 37.797274263s. RESOURCE_EXHAUSTED")
+    )
+    assert wait is not None
+    assert 38.0 <= wait <= 39.0
+    assert _rate_limit_wait_seconds(Exception("other")) is None

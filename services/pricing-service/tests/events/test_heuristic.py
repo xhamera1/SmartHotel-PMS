@@ -37,6 +37,25 @@ def test_heuristic_score_missing_attendance_uses_category_prior() -> None:
     assert missing > known_tiny
 
 
+def test_heuristic_score_venue_prior_raises_arena_above_club_default() -> None:
+    arena = heuristic_score(
+        category="MUSIC",
+        expected_attendance=None,
+        distance_km=4.7,
+        venue_name="Tauron Arena Kraków",
+        event_name="KoRn",
+    )
+    club = heuristic_score(
+        category="MUSIC",
+        expected_attendance=None,
+        distance_km=1.4,
+        venue_name="Small Club",
+        event_name="Local Band",
+    )
+    assert arena > club
+    assert arena >= 50
+
+
 def test_heuristic_score_distance_differentiates_when_attendance_unknown() -> None:
     near = heuristic_score(category="MUSIC", expected_attendance=None, distance_km=0.7)
     far = heuristic_score(category="MUSIC", expected_attendance=None, distance_km=5.4)
@@ -91,9 +110,9 @@ async def test_heuristic_rationale_marks_assumed_attendance() -> None:
     event = NormalizedEvent(
         provider="ticketmaster",
         external_id="tm-no-cap",
-        name="Club Night",
+        name="Mid-size Hall Night",
         category="MUSIC",
-        venue_name="Klub",
+        venue_name="City Concert Hall",
         city="Kraków",
         latitude=50.06,
         longitude=19.93,
