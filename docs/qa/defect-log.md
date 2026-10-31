@@ -261,3 +261,18 @@ Severity scale: `Critical` (data loss / security), `High` (feature broken),
   cancelled in this session; open a confirm dialog before calling cancel.
 - **Regression guard:** `already-cancelled` vs `cancel-success` mutual exclusion
   on ManageBookingPage; `cancel-confirm-dialog` before mutate.
+
+## DEF-0019 — Ticketmaster heuristic impact stuck at 0
+
+- **Date:** 2026-10-30 · **Phase:** 7 · **Found by:** manual (admin Events UI)
+- **Severity:** High
+- **Symptom:** All live Ticketmaster events showed wpływ=0, confidence 0.6,
+  identical rationales `~0 attendance`.
+- **Root cause:** Discovery API has no capacity; mapper wrongly treated
+  `priceRanges.max` as seats (ticket price). Heuristic used
+  `max(1, attendance)` → factor `1/5000` → rounded score 0. Gemini was
+  unavailable so every row was heuristic fallback.
+- **Resolution:** Category attendance priors when capacity unknown; stop using
+  price ranges as attendance; rationale marks `(assumed)`.
+- **Regression guard:** `test_heuristic_score_missing_attendance_uses_category_prior`,
+  `test_ticketmaster_ignores_price_range_as_attendance`.

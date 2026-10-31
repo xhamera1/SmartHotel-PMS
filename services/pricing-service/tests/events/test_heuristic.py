@@ -29,6 +29,20 @@ def test_heuristic_score_zero_attendance() -> None:
     assert score >= 0
 
 
+def test_heuristic_score_missing_attendance_uses_category_prior() -> None:
+    """Ticketmaster events often have no capacity — must not collapse to impact 0."""
+    missing = heuristic_score(category="MUSIC", expected_attendance=None, distance_km=1.4)
+    known_tiny = heuristic_score(category="MUSIC", expected_attendance=1, distance_km=1.4)
+    assert missing >= 20
+    assert missing > known_tiny
+
+
+def test_heuristic_score_distance_differentiates_when_attendance_unknown() -> None:
+    near = heuristic_score(category="MUSIC", expected_attendance=None, distance_km=0.7)
+    far = heuristic_score(category="MUSIC", expected_attendance=None, distance_km=5.4)
+    assert near > far
+
+
 def test_heuristic_score_no_category() -> None:
     score = heuristic_score(category=None, expected_attendance=5000, distance_km=5.0)
     assert 0 <= score <= 100
@@ -70,6 +84,30 @@ async def test_heuristic_scorer_returns_fallback_flag() -> None:
     assert 0 <= results[0].impact_score <= 100
     assert results[0].confidence == "MEDIUM"
     assert len(results[0].affected_nights) >= 1
+
+
+@pytest.mark.asyncio
+async def test_heuristic_rationale_marks_assumed_attendance() -> None:
+    event = NormalizedEvent(
+        provider="ticketmaster",
+        external_id="tm-no-cap",
+        name="Club Night",
+        category="MUSIC",
+        venue_name="Klub",
+        city="Kraków",
+        latitude=50.06,
+        longitude=19.93,
+        distance_km=1.4,
+        starts_at=datetime(2026, 11, 3, 20, 0, tzinfo=UTC),
+        ends_at=None,
+        expected_attendance=None,
+        url=None,
+        raw_payload={},
+    )
+    results = await HeuristicScorer().score([event])
+    assert results[0].impact_score >= 20
+    assert "assumed" in results[0].rationale
+    assert "~0 attendance" not in results[0].rationale
 
 
 @pytest.mark.asyncio

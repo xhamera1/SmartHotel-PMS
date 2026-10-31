@@ -180,14 +180,12 @@ class TicketmasterProvider(EventProvider):
             if distance_km > self._radius_km * 1.5:
                 return None
 
-        attendance: int | None = None
-        if "seatmap" in raw:
-            attendance = _safe_int(raw.get("seatmap", {}).get("totalCapacity"))
+        # Discovery rarely exposes capacity. Never use priceRanges.max — that is
+        # ticket price currency, not seats. Heuristic applies category priors when None.
+        seatmap = raw.get("seatmap") or {}
+        attendance = _safe_int(seatmap.get("totalCapacity")) or _safe_int(seatmap.get("capacity"))
         if attendance is None:
-            for price_range in raw.get("priceRanges", []):
-                cap = _safe_int(price_range.get("max"))
-                if cap and (attendance is None or cap > attendance):
-                    attendance = cap
+            attendance = _safe_int(venue.get("capacity"))
 
         category = _map_category(raw.get("classifications"))
 

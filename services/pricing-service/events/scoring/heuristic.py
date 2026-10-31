@@ -15,9 +15,26 @@ CATEGORY_BASE: dict[str, int] = {
     "CULTURE": 30,
 }
 DEFAULT_CATEGORY_BASE = 35
+# Ticketmaster Discovery rarely exposes capacity; use category priors so
+# missing attendance does not collapse impact to ~0 (attendance_factor = 1/5000).
+CATEGORY_DEFAULT_ATTENDANCE: dict[str, int] = {
+    "MUSIC": 2500,
+    "SPORTS": 10000,
+    "CONFERENCE": 2000,
+    "CULTURE": 1200,
+}
+DEFAULT_ATTENDANCE = 1500
 DISTANCE_SCALE_KM = 15.0
 ATTENDANCE_DIVISOR = 5000.0
 MAX_ATTENDANCE_FACTOR = 2.0
+
+
+def resolve_attendance(category: str | None, expected_attendance: int | None) -> tuple[int, bool]:
+    """Return (attendance, assumed). Assumed when provider left capacity unknown."""
+    if expected_attendance is not None and expected_attendance > 0:
+        return expected_attendance, False
+    cat = (category or "").upper()
+    return CATEGORY_DEFAULT_ATTENDANCE.get(cat, DEFAULT_ATTENDANCE), True
 
 
 def heuristic_score(
@@ -32,7 +49,7 @@ def heuristic_score(
     ``score = category_base * attendance_factor * exp(-distance_km / 15)``
     """
     base = CATEGORY_BASE.get((category or "").upper(), DEFAULT_CATEGORY_BASE)
-    attendance = max(1, expected_attendance or 0)
+    attendance, _ = resolve_attendance(category, expected_attendance)
     att_factor = min(MAX_ATTENDANCE_FACTOR, attendance / ATTENDANCE_DIVISOR)
     dist = max(0.0, distance_km if distance_km is not None else 10.0)
     decay = math.exp(-dist / DISTANCE_SCALE_KM)
@@ -67,6 +84,14 @@ class HeuristicScorer(EventScorer):
                 distance_km=event.distance_km,
             )
             nights = _affected_nights(event, impact)
+            attendance, assumed = resolve_attendance(
+                event.category, event.expected_attendance
+            )
+            att_label = (
+                f"~{attendance} attendance (assumed)"
+                if assumed
+                else f"~{attendance} attendance"
+            )
             results.append(
                 EventScoreResult(
                     event_external_id=event.external_id,
@@ -75,7 +100,7 @@ class HeuristicScorer(EventScorer):
                     affected_nights=nights,
                     rationale=(
                         f"Heuristic: {event.category or 'UNKNOWN'} category, "
-                        f"~{event.expected_attendance or 0} attendance, "
+                        f"{att_label}, "
                         f"{event.distance_km or 0:.1f} km away"
                     )[:240],
                     is_fallback=True,
