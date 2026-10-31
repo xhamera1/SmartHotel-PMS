@@ -1,28 +1,55 @@
+# Ship pms-core + pricing-service JSON logs into smarthotel-*.
+# Apps use businessEvent (not ECS object `event`). Docker metadata is dropped
+# because container.image is an object and fights our keyword mapping.
 filebeat.autodiscover:
   providers:
     - type: docker
-      hints.enabled: true
+      hints.enabled: false
       templates:
         - condition:
-            contains:
-              docker.container.name: smarthotel
+            or:
+              - contains.docker.container.name: smarthotel-pms
+              - contains.docker.container.name: smarthotel-pricing
           config:
             - type: container
               paths:
                 - /var/lib/docker/containers/${data.docker.container.id}/*.log
-              json.keys_under_root: true
-              json.add_error_key: true
 
 processors:
-  - add_cloud_metadata: ~
-  - add_docker_metadata: ~
+  - decode_json_fields:
+      fields: ["message"]
+      target: ""
+      overwrite_keys: true
+      add_error_key: true
+  - copy_fields:
+      fields:
+        - from: container.name
+          to: containerName
+      fail_on_error: false
+      ignore_missing: true
+  - drop_fields:
+      fields:
+        - agent
+        - ecs
+        - host
+        - input
+        - log
+        - stream
+        - container
+        - docker
+        - orchestrator
+        - cloud
+      ignore_missing: true
+  - drop_event:
+      when:
+        not:
+          has_fields: ["service"]
+
+setup.ilm.enabled: false
+setup.template.enabled: false
 
 output.elasticsearch:
   hosts: ["elasticsearch:9200"]
   index: "smarthotel-%{+yyyy.MM.dd}"
-
-setup.ilm.enabled: false
-setup.template.name: "smarthotel"
-setup.template.pattern: "smarthotel-*"
 
 logging.level: info

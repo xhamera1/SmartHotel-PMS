@@ -1,0 +1,53 @@
+{
+  "index_patterns": ["smarthotel-*"],
+  "template": {
+    "settings": {
+      "index.lifecycle.name": "smarthotel-7d",
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "level": { "type": "keyword" },
+        "service": { "type": "keyword" },
+        "traceId": { "type": "keyword" },
+        "requestId": { "type": "keyword" },
+        "message": { "type": "text" },
+        "businessEvent": { "type": "keyword" },
+        "event": { "type": "keyword" },
+        "durationMs": { "type": "long" },
+        "http": {
+          "properties": {
+            "method": { "type": "keyword" },
+            "path": { "type": "keyword" },
+            "status": { "type": "integer" }
+          }
+        },
+        "http.method": { "type": "keyword" },
+        "http.path": { "type": "keyword" },
+        "http.status": { "type": "integer" },
+        "date": { "type": "keyword" },
+        "roomType": { "type": "keyword" },
+        "price": { "type": "keyword" },
+        "multiplier": { "type": "float" },
+        "source": { "type": "keyword" },
+        "modelVersion": { "type": "keyword" },
+        "demandIndicator": { "type": "integer" },
+        "confirmationCode": { "type": "keyword" },
+        "actor": { "type": "keyword" },
+        "latencyMs": { "type": "long" },
+        "batchSize": { "type": "integer" },
+        "outcome": { "type": "keyword" },
+        "is_fallback": { "type": "boolean" },
+        "containerName": { "type": "keyword" },
+        "logger_name": { "type": "keyword" },
+        "thread_name": { "type": "keyword" },
+        "level_value": { "type": "long" },
+        "@version": { "type": "keyword" }
+      }
+    }
+  },
+  "priority": 200
+}

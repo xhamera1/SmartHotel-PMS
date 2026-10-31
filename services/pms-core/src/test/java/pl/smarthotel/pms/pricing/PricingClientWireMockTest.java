@@ -21,7 +21,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import pl.smarthotel.pms.common.web.CorrelationIds;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
@@ -159,6 +161,28 @@ class PricingClientWireMockTest {
         Optional<PricingQuotesResponse> response = pricingClient.fetchQuotes(sampleRequest());
 
         assertThat(response).isEmpty();
+    }
+
+    @Test
+    void shouldForwardTraceIdAsRequestIdHeader() {
+        String planted = "e2e-trace-phase10-0001";
+        wireMock.stubFor(post(urlEqualTo("/api/v1/quotes"))
+                .withHeader(CorrelationIds.HEADER, equalTo(planted))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(quotesJson("STD", "2026-11-01", "512.50"))));
+
+        CorrelationIds.put(planted);
+        try {
+            assertThat(pricingClient.fetchQuotes(sampleRequest())).isPresent();
+        } finally {
+            CorrelationIds.clear();
+            MDC.clear();
+        }
+
+        wireMock.verify(postRequestedFor(urlEqualTo("/api/v1/quotes"))
+                .withHeader(CorrelationIds.HEADER, equalTo(planted)));
     }
 
     private static PricingQuotesRequest sampleRequest() {

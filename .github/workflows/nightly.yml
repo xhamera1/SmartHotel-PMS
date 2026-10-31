@@ -139,20 +139,10 @@ jobs:
       - name: Start app + observability stack
         run: |
           docker compose --env-file .env -f infra/compose.yml --profile app --profile observability up -d --build --wait
-      - name: Generate some traffic
+      - name: ELK smoke (template + traffic + _count)
         run: |
-          for i in $(seq 1 5); do
-            curl -sf http://127.0.0.1:8080/actuator/health || true
-            curl -sf http://127.0.0.1:8081/health/ready || true
-            sleep 2
-          done
-      - name: Wait for Filebeat to ship logs
-        run: sleep 30
-      - name: Assert Elasticsearch has documents
-        run: |
-          COUNT=$(curl -sf http://127.0.0.1:9200/_count | python3 -c 'import sys,json; print(json.load(sys.stdin)["count"])')
-          echo "ES document count: $COUNT"
-          test "$COUNT" -gt 0
+          chmod +x infra/elk/*.sh
+          bash infra/elk/smoke.sh
       - name: Tear down
         if: always()
         run: docker compose --env-file .env -f infra/compose.yml --profile app --profile observability down -v

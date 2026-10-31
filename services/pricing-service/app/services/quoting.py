@@ -11,9 +11,13 @@ import sqlalchemy as sa
 from app.schemas import QuoteItemRequest, QuoteItemResponse
 from app.services.db import fetch_demand_by_dates, insert_prediction_logs
 from app.services.model_loader import ModelState
+import structlog
+
 from domain.factors import build_factors
 from domain.features_batch import QuoteFeatureInput, build_feature_frame_from_batch
 from domain.pricing import clamp_and_round
+
+log = structlog.get_logger("app.pricing")
 
 
 def quote_batch(
@@ -82,6 +86,18 @@ def quote_batch(
                 "model_version": model.version,
             }
         )
+        if index == 0:
+            log.info(
+                "PricingDecisionMade",
+                businessEvent="PricingDecisionMade",
+                date=str(item.date),
+                roomType=item.room_type_code,
+                price=str(price),
+                multiplier=served_multiplier,
+                source="ML_MODEL",
+                modelVersion=model.version,
+                demandIndicator=indicator,
+            )
     return responses, log_rows
 
 

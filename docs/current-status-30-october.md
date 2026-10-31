@@ -1,6 +1,6 @@
 # SmartHotel-PMS — status projektu (30 października 2026)
 
-**Werdykt:** produktowo jesteśmy po **fazach 0–9** (Playwright E2E-01…11 + fault), z domknięciem luk z §5 (Must/Should/Nice) z 30.10.2026 (DEF-0006…0016). Przed nami głównie **fazy 10–14** (pełne dashboardy Kibana, k6, `compose.demo.yml`, eksperymenty, demo obrony). Compose ma już frontend + profile `stubs`/`observability` (MVP).
+**Werdykt:** produktowo jesteśmy po **fazach 0–10** (E2E + ELK/JSON logs/Kibana ndjson), z domknięciem luk z §5 (Must/Should/Nice) z 30.10.2026 (DEF-0006…0016). Przed nami głównie **fazy 11–14** (k6, `compose.demo.yml`, eksperymenty, demo obrony). Compose: frontend + `stubs` / `observability`.
 
 **Założenie obciążenia (audit):** jeden hotel, kilku pracowników + goście bookingowi, nocny batch cen — nie multi-property SaaS.
 
@@ -37,13 +37,13 @@ Legenda: ✅ zrobione i potwierdzone · 🟡 częściowo / drobne luki · ❌ ni
 | **7** Events + Gemini | Ticketmaster/static, scoring, fallback, demand | ✅ | Sync fixed; pin `gemini-2.5-flash`; fuzzy-dedupe nadal nice-to-have |
 | **8** Integracja PMS↔pricing | Resilience4j, refresh, proxy, fallback | ✅ | Proxy mapuje confidence/rationale; horyzont default 180 |
 | **9** E2E Playwright | E2E-01…11 + fault injection | ✅ | `e2e/` + katalog/flake policy; CI smoke `@smoke` + nightly full; required check po 3× green |
-| **10** Observability ELK | ES + Kibana + Filebeat | 🟡 | Compose profile `observability` + `filebeat.yml` MVP; brak Kibana dashboards ndjson |
+| **10** Observability ELK | ES + Kibana + Filebeat | ✅ | JSON logs + business events + ILM/template + Kibana ndjson; nightly `infra/elk/smoke.sh` |
 | **11** Perf k6 | smoke/load/soak + baselines | ❌ | Tylko `perf/README.md` |
 | **12** CI/CD hardening | Trivy, gitleaks, GHCR, release | 🟡 | GHCR + frontend image; Dependabot; Trivy exit 1; brak `compose.demo.yml` / RELEASE |
 | **13** Eksperymenty RQ1–4 | protokoły + `task experiments` | 🟡 | `docs/qa/experiment-protocols.md` pre-registered; ablation artifacts istnieją |
 | **14** Demo / obrona | `compose.demo.yml`, skrypt demo, traceability | ❌ | Częściowo: seed + static provider + fixture model; brak demo compose / backup video / macierzy wymagań |
 
-**Najkrótsza odpowiedź „gdzie jesteśmy”:** skończony **track A + track B + integracja + E2E (Phase 8–9)**. Następny duży kamień milowy: **Phase 10–11 (ELK dashboards / k6)** oraz materiały Phase 13/14 pod dyplom.
+**Najkrótsza odpowiedź „gdzie jesteśmy”:** skończony **track A + B + integracja + E2E + observability (Phase 8–10)**. Następny duży kamień: **Phase 11 (k6)** oraz materiały Phase 13/14 pod dyplom.
 
 ---
 
@@ -156,9 +156,11 @@ Pozostałe luki produktowe: Phase 9 Playwright, Kibana dashboards ndjson, k6, `c
 - Fallback banner: `pricing-fallback-banner` + PMS refresh `DEGRADED` gdy 0 upsertów
 - ~~Job smoke/full~~ w `main.yml` / `nightly.yml` (`app+stubs`); required check po 3× green
 
-### Phase 10 — Observability
-- Compose profile `observability` MVP już jest (ES/Kibana/Filebeat)
-- Domknięcie JSON logs + correlation E2E; dashboards ndjson w `infra/elk/`
+### Phase 10 — Observability ✅
+- Compose profile `observability` + JSON logs (`logstash-logback` / `structlog`) + business events
+- ILM 7d, `dynamic:false` template, Kibana ndjson, `infra/elk/smoke.sh` (nightly)
+- Design: `docs/architecture/observability.md`
+- **Verified 2026-10-31:** Discover shows `ReservationCreated`/`ReservationCancelled` for `X5TW36R6` (book+cancel walkthrough in observability.md)
 
 ### Phase 11 — Performance
 - Seed perf (~100k reservations) w `infra/seed/perf`
@@ -190,7 +192,7 @@ Pozostałe luki produktowe: Phase 9 Playwright, Kibana dashboards ndjson, k6, `c
 | Rate plans | nie w early scope szczegółowo | **Zaimplementowane** (FLEX/NONREF/BB, ADR-0007) — booking wymaga `ratePlanCode` |
 | Frontend w compose `app` | tak | **nie** — tylko pms-core + pricing-service |
 | WireMock stubs profile | tak | placeholder |
-| ELK | Phase 10 | brak usług; brak `logstash-logback-encoder` / `structlog` w grepie usług |
+| ELK | Phase 10 | **zrobione** — profile + JSON + ndjson + smoke |
 | i18n | could-have | **jest** (PL messages) |
 | Login rate limit | Optional-Advanced | **jest** (bucket4j) |
 | Node / Spring | Node 24, SB 3.x | zgodne (SB 3.4.4) |
@@ -200,7 +202,7 @@ Pozostałe luki produktowe: Phase 9 Playwright, Kibana dashboards ndjson, k6, `c
 | Refresh horizon | 180 dni | **365** (`PRICING_REFRESH_HORIZON_DAYS`) |
 | Pricing retry | ×2 | **3** attempts w `application.yml` |
 | Dashboard | tylko KPIs | + `timeseries` (occupancy/ADR) |
-| Structured JSON logs | Phase 10 day-one fields | correlation ID jest; pełny ELK schema stack jeszcze nie |
+| Structured JSON logs | shared schema + PII mask | **zrobione** (Phase 10) |
 
 Plan nie jest „błędny” — jest baseline; kod w kilku miejscach **poszedł dalej** (rate plans, i18n, rate limit, timeseries) albo **jeszcze nie doszedł** (9–11, część 12–14).
 
@@ -224,7 +226,7 @@ Plan nie jest „błędny” — jest baseline; kod w kilku miejscach **poszedł
 ### Nice to have
 8. Więcej RTL na stronach admin; Postman Phase 8; metamorphic na shipped model; ELK gdy potrzebne do wykresów w pracy.
 
-**Verdict:** zdrowy rdzeń produktowy po Phase 8–9; dalej Phase 10/11 + materiały Phase 13/14 pod dyplom.
+**Verdict:** zdrowy rdzeń produktowy po Phase 8–10; dalej Phase 11 (k6) + materiały Phase 13/14 pod dyplom.
 
 **Not checked w tej sesji:** pełny `mvn verify` od zera (użyto świeżych unit + istniejących failsafe reports ~81 IT), live Ticketmaster/Gemini z prawdziwymi kluczami, pełny `docker compose --profile app` build obrazów, ręczne kliknięcie całego UI w przeglądarce (tylko HTTP 200 frontendu + API), testcontainers Python integration lokalnie.
 
@@ -233,10 +235,10 @@ Plan nie jest „błędny” — jest baseline; kod w kilku miejscach **poszedł
 ## 9. Rekomendowana kolejność prac (najbliższe 2–4 sprinty)
 
 1. Utrzymać E2E green ×3 w CI, potem required check na `main`.  
-2. Phase 10: Kibana dashboards ndjson + pełny JSON log schema.  
-3. Phase 11: k6 smoke/load/soak + baselines.  
-4. Phase 13: regeneracja tabel E1/E2; E3 gdy klucze Gemini.  
-5. Phase 14: `compose.demo.yml` + video zapasowe.
+2. Phase 11: k6 smoke/load/soak + baselines.  
+3. Phase 13: regeneracja tabel E1/E2; E3 gdy klucze Gemini.  
+4. Phase 14: `compose.demo.yml` + video zapasowe.  
+5. Screenshots Kibana do aneksu pracy (po lokalnym `import-kibana.sh`).
 
 ---
 

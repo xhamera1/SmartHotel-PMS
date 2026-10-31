@@ -7,6 +7,7 @@ import contextlib
 import json
 import logging
 import re
+import time
 from datetime import date
 from typing import Any, Literal
 
@@ -17,6 +18,13 @@ from events.scoring.base import EventScorer
 from events.scoring.prompt import build_user_prompt, load_system_prompt
 
 logger = logging.getLogger(__name__)
+
+try:
+    import structlog
+
+    blog = structlog.get_logger("events.gemini")
+except Exception:  # pragma: no cover
+    blog = None
 
 BATCH_SIZE = 10
 MAX_RETRIES = 3
@@ -127,6 +135,7 @@ class GeminiScorer(EventScorer):
         user_prompt = build_user_prompt(events)
 
         for attempt in range(MAX_RETRIES + 1):
+            started = time.perf_counter()
             try:
                 response = await asyncio.wait_for(
                     asyncio.to_thread(
@@ -164,6 +173,12 @@ class GeminiScorer(EventScorer):
                         await asyncio.sleep(BACKOFF_BASE * (2**attempt))
                         continue
                     logger.error("Gemini response validation failed after retries")
+                    _emit_gemini_completed(
+                        latency_ms=int((time.perf_counter() - started) * 1000),
+                        batch_size=len(events),
+                        outcome="validation_failed",
+                        is_fallback=True,
+                    )
                     return None
 
                 results: list[EventScoreResult] = []
@@ -180,6 +195,12 @@ class GeminiScorer(EventScorer):
                         )
                     )
 
+                _emit_gemini_completed(
+                    latency_ms=int((time.perf_counter() - started) * 1000),
+                    batch_size=len(events),
+                    outcome="ok",
+                    is_fallback=False,
+                )
                 return results
 
             except TimeoutError:
@@ -187,6 +208,12 @@ class GeminiScorer(EventScorer):
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(BACKOFF_BASE * (2**attempt))
                     continue
+                _emit_gemini_completed(
+                    latency_ms=int((time.perf_counter() - started) * 1000),
+                    batch_size=len(events),
+                    outcome="timeout",
+                    is_fallback=True,
+                )
                 return None
             except Exception as exc:
                 wait = _rate_limit_wait_seconds(exc)
@@ -202,9 +229,30 @@ class GeminiScorer(EventScorer):
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(BACKOFF_BASE * (2**attempt))
                     continue
+                _emit_gemini_completed(
+                    latency_ms=int((time.perf_counter() - started) * 1000),
+                    batch_size=len(events),
+                    outcome="error",
+                    is_fallback=True,
+                )
                 return None
 
         return None
+
+
+def _emit_gemini_completed(
+    *, latency_ms: int, batch_size: int, outcome: str, is_fallback: bool
+) -> None:
+    if blog is None:
+        return
+    blog.info(
+        "GeminiCallCompleted",
+        businessEvent="GeminiCallCompleted",
+        latencyMs=latency_ms,
+        batchSize=batch_size,
+        outcome=outcome,
+        is_fallback=is_fallback,
+    )
 
 
 def _rate_limit_wait_seconds(exc: BaseException) -> float | None:

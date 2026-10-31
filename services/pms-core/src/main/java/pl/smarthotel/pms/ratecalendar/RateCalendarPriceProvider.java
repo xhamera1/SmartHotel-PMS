@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.smarthotel.pms.common.config.ClockConfig;
 import pl.smarthotel.pms.common.domain.OccupancyCalculator;
+import pl.smarthotel.pms.common.logging.BusinessEvents;
 import pl.smarthotel.pms.pricing.PricingClient;
 import pl.smarthotel.pms.pricing.PricingProperties;
 import pl.smarthotel.pms.pricing.dto.PricingQuoteItemRequest;
@@ -133,6 +134,14 @@ public class RateCalendarPriceProvider implements PriceProvider {
         } catch (Exception ex) {
             log.warn("On-demand pricing quote failed for {} {}: {}", roomType.getCode(), night, ex.toString());
         }
+        BusinessEvents.pricingDecisionMade(
+                night.toString(),
+                roomType.getCode(),
+                basePrice.toPlainString(),
+                "1.0",
+                PriceSource.BASE_FALLBACK.name(),
+                null,
+                null);
         return new NightlyBar(night, basePrice, PriceSource.BASE_FALLBACK);
     }
 }

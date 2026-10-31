@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from sqlalchemy.engine import Engine
 
 from app.errors import register_exception_handlers
+from app.logging_config import configure_logging
 from app.middleware.auth import InternalApiKeyMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import demand, events, health, internal, model, quotes
@@ -36,6 +37,7 @@ def create_app(
     """
 
     cfg = settings or get_settings()
+    configure_logging(service="pricing-service", json_logs=True)
     owns_engine = engine is None
     holder = ModelHolder()
     if initial_model is not None:

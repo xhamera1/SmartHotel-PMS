@@ -7,3 +7,4 @@
 - `experiment-protocols.md` — pre-registered research experiment protocols (Phase 13).
 - `e2e-scenario-catalog.md` / `e2e-flake-policy.md` — Playwright E2E catalog + flake rules (Phase 9).
 - `e2e-local-run-notes.md` — local harness pitfalls vs product bugs (thesis QA notes).
+- Observability design (Phase 10): [`../architecture/observability.md`](../architecture/observability.md); ELK runbook: [`../../infra/elk/README.md`](../../infra/elk/README.md).

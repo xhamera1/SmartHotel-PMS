@@ -116,7 +116,8 @@ services:
     container_name: smarthotel-filebeat
     profiles: ["observability"]
     user: root
-    command: ["filebeat", "-e", "-strict.perms=false"]
+    # Filebeat 8 needs long-form --strict.perms (short -strict.perms is parsed as -s and crashes).
+    command: ["filebeat", "-e", "--strict.perms=false"]
     volumes:
       - ./elk/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro

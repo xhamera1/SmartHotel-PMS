@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import pl.smarthotel.pms.common.config.ClockConfig;
 import pl.smarthotel.pms.common.exception.ApplicationException;
 import pl.smarthotel.pms.common.exception.RoomNoLongerAvailableException;
+import pl.smarthotel.pms.common.logging.BusinessEvents;
 import pl.smarthotel.pms.common.web.PageResponse;
 import pl.smarthotel.pms.common.web.ProblemTypes;
 import pl.smarthotel.pms.guests.GuestEntity;
@@ -118,7 +119,10 @@ public class ReservationService {
         entity.setSource(source);
 
         try {
-            return toResponse(reservationRepository.saveAndFlush(entity));
+            ReservationEntity saved = reservationRepository.saveAndFlush(entity);
+            BusinessEvents.reservationCreated(
+                    saved.getConfirmationCode(), roomType.getCode(), source.name());
+            return toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
             if (ExclusionConstraint.isDoubleBooking(ex)) {
                 throw RoomNoLongerAvailableException.forStay(
@@ -156,7 +160,9 @@ public class ReservationService {
         }
 
         reservation.setStatus(ReservationStatus.CANCELLED);
-        return toResponse(reservationRepository.save(reservation));
+        ReservationEntity saved = reservationRepository.save(reservation);
+        BusinessEvents.reservationCancelled(saved.getConfirmationCode(), "guest");
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -209,7 +215,9 @@ public class ReservationService {
         ReservationEntity reservation = requireById(id);
         ReservationStateMachine.guard(reservation.getStatus(), ReservationAction.CANCEL_STAFF);
         reservation.setStatus(ReservationStatus.CANCELLED);
-        return toResponse(reservationRepository.save(reservation));
+        ReservationEntity saved = reservationRepository.save(reservation);
+        BusinessEvents.reservationCancelled(saved.getConfirmationCode(), "staff");
+        return toResponse(saved);
     }
 
     @Transactional

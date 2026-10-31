@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import pl.smarthotel.pms.common.logging.BusinessEvents;
 import pl.smarthotel.pms.pricing.PricingClient;
 import pl.smarthotel.pms.pricing.dto.PricingQuoteItemRequest;
 import pl.smarthotel.pms.pricing.dto.PricingQuoteItemResponse;
@@ -95,6 +96,19 @@ public class RateCalendarUpsertService {
             entry.setComputedAt(clock.instant());
             rateCalendarRepository.save(entry);
             count++;
+            // Sample telemetry (first row of each apply) — avoids log floods on full refresh.
+            if (count == 1) {
+                BusinessEvents.pricingDecisionMade(
+                        item.date().toString(),
+                        roomType.getCode(),
+                        price.toPlainString(),
+                        Double.toString(item.multiplier()),
+                        PriceSource.ML_MODEL.name(),
+                        entry.getModelVersion(),
+                        entry.getDemandIndicator() == null
+                                ? null
+                                : entry.getDemandIndicator().intValue());
+            }
         }
         return count;
     }
