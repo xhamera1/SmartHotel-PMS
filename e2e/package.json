@@ -1,0 +1,19 @@
+{
+  "name": "smarthotel-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test --project=chromium --project=fault",
+    "test:smoke": "playwright test --project=chromium --project=fault --grep @smoke",
+    "test:firefox": "playwright test --project=firefox",
+    "test:all": "playwright test",
+    "test:ui": "playwright test --ui --project=chromium --project=fault",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^22.18.0",
+    "typescript": "^5.9.2"
+  }
+}

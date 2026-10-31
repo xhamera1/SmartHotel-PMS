@@ -38,9 +38,11 @@ jobs:
         run: |
           cp .env.example .env
           sed -i 's/^JWT_SECRET=.*/JWT_SECRET=ci-jwt-secret-key-at-least-32-bytes-long!!/' .env
+          sed -i 's/^EVENT_PROVIDER=.*/EVENT_PROVIDER=static/' .env || echo 'EVENT_PROVIDER=static' >> .env
+          grep -q 'localhost:8088' .env || echo 'CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8088,http://127.0.0.1:5173,http://127.0.0.1:8088' >> .env
       - name: Start app stack
         run: |
-          docker compose --env-file .env -f infra/compose.yml --profile app up -d --build --wait
+          docker compose --env-file .env -f infra/compose.yml --profile app --profile stubs up -d --build --wait
       - uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
@@ -56,17 +58,24 @@ jobs:
           pnpm exec playwright install --with-deps ${{ matrix.browser }}
       - name: Run Playwright (${{ matrix.browser }})
         working-directory: e2e
-        run: pnpm exec playwright test --project=${{ matrix.browser }}
+        run: |
+          if [ "${{ matrix.browser }}" = "chromium" ]; then
+            pnpm exec playwright test --project=chromium --project=fault
+          else
+            pnpm exec playwright test --project=firefox
+          fi
       - name: Upload traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-traces-${{ matrix.browser }}
-          path: e2e/test-results/
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
           if-no-files-found: ignore
       - name: Tear down
         if: always()
-        run: docker compose --env-file .env -f infra/compose.yml --profile app down -v
+        run: docker compose --env-file .env -f infra/compose.yml --profile app --profile stubs down -v
 
   # ---------------------------------------------------------------------------
   # 2. k6 load + soak + baseline comparison (Phase 11+)

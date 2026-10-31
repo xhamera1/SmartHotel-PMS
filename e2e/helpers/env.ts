@@ -1,0 +1,5 @@
+export const API_BASE = process.env.E2E_API_URL ?? 'http://localhost:8080'
+export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@smarthotel.local'
+export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'admin-dev-password'
+export const RECEPTION_EMAIL = process.env.E2E_RECEPTION_EMAIL ?? 'reception@smarthotel.local'
+export const RECEPTION_PASSWORD = process.env.E2E_RECEPTION_PASSWORD ?? 'reception-dev-password'

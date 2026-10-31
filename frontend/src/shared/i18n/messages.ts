@@ -209,6 +209,7 @@ export type Messages = {
     removeOverride: string
     saveManual: string
     refreshFailed: string
+    pricingFallbackBanner: string
     eventsTitle: string
     eventsSubtitle: string
     eventsError: string
@@ -461,6 +462,8 @@ export const messagesByLocale: Record<AppLocale, Messages> = {
       removeOverride: 'Usuń override',
       saveManual: 'Zapisz MANUAL',
       refreshFailed: 'Odświeżenie nieudane',
+      pricingFallbackBanner:
+        'Pricing niedostępny lub ceny z fallbacku bazowego — goście widzą base rate do czasu powrotu usługi.',
       eventsTitle: 'Wydarzenia i popyt',
       eventsSubtitle:
         'Dane z proxy PMS → pricing-service (faza 8). Do czasu podłączenia listy pozostają puste.',
@@ -710,6 +713,8 @@ export const messagesByLocale: Record<AppLocale, Messages> = {
       removeOverride: 'Remove override',
       saveManual: 'Save MANUAL',
       refreshFailed: 'Refresh failed',
+      pricingFallbackBanner:
+        'Pricing is unavailable or showing base fallback — guests see base rates until the service recovers.',
       eventsTitle: 'Events and demand',
       eventsSubtitle:
         'Data via PMS proxy → pricing-service (phase 8). Lists stay empty until wired.',

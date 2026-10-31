@@ -67,6 +67,7 @@ export function EventsPage() {
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           slotProps={{ inputLabel: { shrink: true } }}
+          data-testid="events-from"
         />
         <TextField
           size="small"
@@ -75,6 +76,7 @@ export function EventsPage() {
           value={to}
           onChange={(e) => setTo(e.target.value)}
           slotProps={{ inputLabel: { shrink: true } }}
+          data-testid="events-to"
         />
       </Box>
 

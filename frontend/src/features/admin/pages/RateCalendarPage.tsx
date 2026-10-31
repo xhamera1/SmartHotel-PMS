@@ -55,6 +55,7 @@ export function RateCalendarPage() {
   const [overridePrice, setOverridePrice] = useState('')
   const [overrideError, setOverrideError] = useState<string | null>(null)
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
+  const [refreshFailed, setRefreshFailed] = useState(false)
 
   const typesQuery = useQuery({
     queryKey: adminKeys.roomTypes({ page: 0, size: 100, active: true }),
@@ -145,6 +146,8 @@ export function RateCalendarPage() {
   const refreshMutation = useMutation({
     mutationFn: refreshPrices,
     onSuccess: async (res) => {
+      const degraded = res.status === 'DEGRADED'
+      setRefreshFailed(degraded)
       setRefreshMsg(res.message ?? res.status ?? 'OK')
       if (effectiveCode) {
         await queryClient.invalidateQueries({
@@ -153,9 +156,16 @@ export function RateCalendarPage() {
       }
     },
     onError: (error) => {
+      setRefreshFailed(true)
       setRefreshMsg(problemMessage(error, t.admin.refreshFailed))
     },
   })
+
+  const hasFallbackCells = useMemo(
+    () => [...daysByDate.values()].some((day) => day.source === 'BASE_FALLBACK'),
+    [daysByDate],
+  )
+  const showPricingFallbackBanner = refreshFailed || hasFallbackCells
 
   const leadingBlanks = (getDay(monthDays[0]!) + 6) % 7 // Monday-first
 
@@ -173,10 +183,11 @@ export function RateCalendarPage() {
           value={effectiveCode}
           onChange={(e) => setRoomTypeCode(e.target.value)}
           sx={{ minWidth: 180 }}
+          data-testid="rate-calendar-room-type"
         >
-          {(typesQuery.data?.content ?? []).map((t) => (
-            <MenuItem key={t.code} value={t.code}>
-              {t.code}
+          {(typesQuery.data?.content ?? []).map((rt) => (
+            <MenuItem key={rt.code} value={rt.code}>
+              {rt.code}
             </MenuItem>
           ))}
         </TextField>
@@ -187,6 +198,7 @@ export function RateCalendarPage() {
           value={month}
           onChange={(e) => setMonth(e.target.value)}
           slotProps={{ inputLabel: { shrink: true } }}
+          data-testid="rate-calendar-month"
         />
         {isAdmin ? (
           <Button
@@ -194,6 +206,7 @@ export function RateCalendarPage() {
             disabled={refreshMutation.isPending}
             onClick={() => {
               setRefreshMsg(null)
+              setRefreshFailed(false)
               refreshMutation.mutate()
             }}
             data-testid="refresh-prices"
@@ -203,8 +216,18 @@ export function RateCalendarPage() {
         ) : null}
       </Box>
 
+      {showPricingFallbackBanner ? (
+        <Alert severity="warning" sx={{ mb: 2 }} data-testid="pricing-fallback-banner">
+          {t.admin.pricingFallbackBanner}
+        </Alert>
+      ) : null}
+
       {refreshMsg ? (
-        <Alert severity="info" sx={{ mb: 2 }} data-testid="refresh-prices-message">
+        <Alert
+          severity={refreshFailed ? 'error' : 'info'}
+          sx={{ mb: 2 }}
+          data-testid="refresh-prices-message"
+        >
           {refreshMsg}
         </Alert>
       ) : null}
@@ -329,6 +352,7 @@ export function RateCalendarPage() {
             variant="contained"
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
+            data-testid="override-save"
           >
             {t.admin.saveManual}
           </Button>

@@ -51,6 +51,14 @@ public class PricingProxyController {
                     "DISABLED", "Pricing integration is disabled (app.pricing.enabled=false)", 0);
         }
         int daysUpdated = rateCalendarService.refreshFromPricing();
+        // Soft-fail PricingClient yields 0 upserts when pricing is unreachable — surface DEGRADED
+        // so admin UI can show the fallback banner (E2E-10) without treating HTTP as an error.
+        if (daysUpdated == 0) {
+            return new PricingRefreshResponse(
+                    "DEGRADED",
+                    "No rate rows updated — pricing-service may be unavailable; booking uses base rates",
+                    0);
+        }
         return new PricingRefreshResponse(
                 "OK", "Rate calendar refreshed from pricing-service", daysUpdated);
     }

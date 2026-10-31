@@ -1,6 +1,6 @@
 # SmartHotel-PMS — status projektu (30 października 2026)
 
-**Werdykt:** produktowo jesteśmy po **fazach 0–8**, z domknięciem luk z §5 (Must/Should/Nice) z 30.10.2026 (DEF-0006…0016). Przed nami głównie **fazy 9–14** (Playwright E2E, pełne dashboardy Kibana, k6, `compose.demo.yml`, eksperymenty, demo obrony). Compose ma już frontend + profile `stubs`/`observability` (MVP).
+**Werdykt:** produktowo jesteśmy po **fazach 0–9** (Playwright E2E-01…11 + fault), z domknięciem luk z §5 (Must/Should/Nice) z 30.10.2026 (DEF-0006…0016). Przed nami głównie **fazy 10–14** (pełne dashboardy Kibana, k6, `compose.demo.yml`, eksperymenty, demo obrony). Compose ma już frontend + profile `stubs`/`observability` (MVP).
 
 **Założenie obciążenia (audit):** jeden hotel, kilku pracowników + goście bookingowi, nocny batch cen — nie multi-property SaaS.
 
@@ -36,14 +36,14 @@ Legenda: ✅ zrobione i potwierdzone · 🟡 częściowo / drobne luki · ❌ ni
 | **6** Pricing API | FastAPI quotes/health/model, OpenAPI drift | ✅ | Fail-fast schema mismatch; quote features z `top_event_ids` + scores |
 | **7** Events + Gemini | Ticketmaster/static, scoring, fallback, demand | ✅ | Sync fixed; pin `gemini-2.5-flash`; fuzzy-dedupe nadal nice-to-have |
 | **8** Integracja PMS↔pricing | Resilience4j, refresh, proxy, fallback | ✅ | Proxy mapuje confidence/rationale; horyzont default 180 |
-| **9** E2E Playwright | E2E-01…11 + fault injection | ❌ | Tylko `e2e/README.md`; job w `main.yml` czekaw na `playwright.config.ts` |
+| **9** E2E Playwright | E2E-01…11 + fault injection | ✅ | `e2e/` + katalog/flake policy; CI smoke `@smoke` + nightly full; required check po 3× green |
 | **10** Observability ELK | ES + Kibana + Filebeat | 🟡 | Compose profile `observability` + `filebeat.yml` MVP; brak Kibana dashboards ndjson |
 | **11** Perf k6 | smoke/load/soak + baselines | ❌ | Tylko `perf/README.md` |
 | **12** CI/CD hardening | Trivy, gitleaks, GHCR, release | 🟡 | GHCR + frontend image; Dependabot; Trivy exit 1; brak `compose.demo.yml` / RELEASE |
 | **13** Eksperymenty RQ1–4 | protokoły + `task experiments` | 🟡 | `docs/qa/experiment-protocols.md` pre-registered; ablation artifacts istnieją |
 | **14** Demo / obrona | `compose.demo.yml`, skrypt demo, traceability | ❌ | Częściowo: seed + static provider + fixture model; brak demo compose / backup video / macierzy wymagań |
 
-**Najkrótsza odpowiedź „gdzie jesteśmy”:** skończony **track A + track B + integracja (Phase 8)**. Następny duży kamień milowy: **Phase 9 (Playwright)** równolegle z porządkowaniem QA/testów flaky oraz przygotowaniem Phase 13/14 pod dyplom.
+**Najkrótsza odpowiedź „gdzie jesteśmy”:** skończony **track A + track B + integracja + E2E (Phase 8–9)**. Następny duży kamień milowy: **Phase 10–11 (ELK dashboards / k6)** oraz materiały Phase 13/14 pod dyplom.
 
 ---
 
@@ -149,11 +149,12 @@ Pozostałe luki produktowe: Phase 9 Playwright, Kibana dashboards ndjson, k6, `c
 
 ## 6. Co należy dodać / co przed nami
 
-### Phase 9 — E2E (najwyższy priorytet produktowy)
-- Scaffold Playwright w `e2e/`
-- Scenariusze E2E-01…11 z planu (booking, sold-out, race 409, cancel, CRUD, lifecycle, manual override vs refresh, auth roles, **kill pricing**, events view)
-- `data-testid` już częściowo w FE (`shared/ui/testids.ts`) — dobra baza
-- Włączyć realny job w `main.yml` (obecnie no-op bez `playwright.config.ts`)
+### Phase 9 — E2E ✅
+- ~~Scaffold Playwright w `e2e/`~~ + `docs/qa/e2e-scenario-catalog.md` / flake policy
+- ~~Scenariusze E2E-01…11~~ (booking, sold-out, race 409, cancel, CRUD, lifecycle, override, refresh, auth, kill pricing, events)
+- ~~CI `main` smoke + `nightly` full (`app`+`stubs`, `EVENT_PROVIDER=static`)~~; required check dopiero po 3× green
+- Fallback banner: `pricing-fallback-banner` + PMS refresh `DEGRADED` gdy 0 upsertów
+- ~~Job smoke/full~~ w `main.yml` / `nightly.yml` (`app+stubs`); required check po 3× green
 
 ### Phase 10 — Observability
 - Compose profile `observability` MVP już jest (ES/Kibana/Filebeat)
@@ -214,16 +215,16 @@ Plan nie jest „błędny” — jest baseline; kod w kilku miejscach **poszedł
 2. **Dokumentacja statusu** (README) wprowadza w błąd co do etapu.
 
 ### Should fix
-3. Brak E2E mimo gotowej integracji API — największa luka względem DoD „system gotowy do bramkowania main UI”.
-4. Brak frontendu w compose utrudnia powtarzalne demo/CI UI.
-5. Brak pre-registered experiment protocols przed dalszymi runami badawczymi.
-6. Event proxy bez confidence/rationale; quotes bez prawdziwych `event_count_active`/`max_event_score`.
-7. Datagen golden hashes niecommitted — słabsza reprodukowalność generatora.
+3. ~~Brak E2E~~ — Phase 9 zrobione; required GitHub check dopiero po 3× green.
+4. ~~Brak frontendu w compose~~ — profile `app` ma nginx SPA `:8088`.
+5. Brak pre-registered experiment protocols przed dalszymi runami badawczymi (częściowo: `experiment-protocols.md`).
+6. ~~Event proxy / quotes features~~ — domknięte w Phase 8 remediation.
+7. ~~Datagen golden hashes~~ — committed.
 
 ### Nice to have
 8. Więcej RTL na stronach admin; Postman Phase 8; metamorphic na shipped model; ELK gdy potrzebne do wykresów w pracy.
 
-**Verdict:** zdrowy rdzeń produktowy po Phase 8; napraw 2 testy Pythona, potem Phase 9 + materiały Phase 13/14 pod dyplom.
+**Verdict:** zdrowy rdzeń produktowy po Phase 8–9; dalej Phase 10/11 + materiały Phase 13/14 pod dyplom.
 
 **Not checked w tej sesji:** pełny `mvn verify` od zera (użyto świeżych unit + istniejących failsafe reports ~81 IT), live Ticketmaster/Gemini z prawdziwymi kluczami, pełny `docker compose --profile app` build obrazów, ręczne kliknięcie całego UI w przeglądarce (tylko HTTP 200 frontendu + API), testcontainers Python integration lokalnie.
 
@@ -231,12 +232,11 @@ Plan nie jest „błędny” — jest baseline; kod w kilku miejscach **poszedł
 
 ## 9. Rekomendowana kolejność prac (najbliższe 2–4 sprinty)
 
-1. Naprawić 2 failing pytest + zaktualizować README status.  
-2. Dodać frontend do compose `app` (nginx multi-stage).  
-3. Phase 9: Playwright smoke (E2E-01, 07, 10) → potem pełny katalog.  
-4. Phase 13: `experiment-protocols.md` + regeneracja tabel E1/E2 z istniejących pipeline’ów; E3 gdy klucze Gemini.  
-5. Phase 10/11 według potrzeb rozdziału QA/performance w pracy.  
-6. Phase 14: demo offline + video zapasowe.
+1. Utrzymać E2E green ×3 w CI, potem required check na `main`.  
+2. Phase 10: Kibana dashboards ndjson + pełny JSON log schema.  
+3. Phase 11: k6 smoke/load/soak + baselines.  
+4. Phase 13: regeneracja tabel E1/E2; E3 gdy klucze Gemini.  
+5. Phase 14: `compose.demo.yml` + video zapasowe.
 
 ---
 
