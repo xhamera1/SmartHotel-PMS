@@ -50,7 +50,7 @@ jobs:
 
       - name: Upload smoke test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: live-smoke-results
           path: tmp/live-smoke-results.xml

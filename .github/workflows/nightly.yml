@@ -66,7 +66,7 @@ jobs:
           fi
       - name: Upload traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-traces-${{ matrix.browser }}
           path: |
@@ -113,7 +113,7 @@ jobs:
           "
       - name: Upload k6 results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: k6-nightly-results
           path: tmp/k6-*.json
@@ -185,7 +185,7 @@ jobs:
           fi
       - name: Upload PIT report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pit-mutation-report
           path: services/pms-core/target/pit-reports/
