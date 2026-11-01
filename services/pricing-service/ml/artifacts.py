@@ -19,7 +19,9 @@ from ml.pipeline import TrainingResult
 MODEL_FILENAME = "model.joblib"
 METADATA_FILENAME = "metadata.json"
 PACKAGE_ROOT = Path(__file__).resolve().parent
-REPO_ROOT = PACKAGE_ROOT.parents[2]
+SERVICE_ROOT = PACKAGE_ROOT.parent
+# The repository nests this service under services/; Docker copies it into /app.
+REPO_ROOT = SERVICE_ROOT.parent.parent if SERVICE_ROOT.parent.name == "services" else SERVICE_ROOT
 DEFAULT_MODEL_ROOT = REPO_ROOT / "artifacts" / "models"
 _VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 

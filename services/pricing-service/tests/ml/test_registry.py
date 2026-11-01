@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from ml.features import FEATURE_SCHEMA_HASH
-from ml.registry import promote_model, register_artifact
+from ml.registry import main, promote_model, register_artifact
 
 
 class _Result:
@@ -107,3 +108,29 @@ def test_promotion_rejects_unknown_version(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="not found"):
         promote_model("postgresql://test", "missing")
+
+
+def test_cli_reports_missing_metadata_without_traceback(tmp_path, capsys) -> None:
+    missing = tmp_path / "missing-metadata.json"
+
+    result = main(["register", "--metadata", str(missing), "--database-url", "postgresql://test"])
+
+    captured = capsys.readouterr()
+    assert result == 1
+    assert "registry_error=" in captured.out
+    assert missing.name in captured.out
+    assert captured.err == ""
+
+
+def test_cli_reports_database_error_without_traceback(monkeypatch, capsys) -> None:
+    def fail_to_connect(_url):
+        raise SQLAlchemyError("database unavailable")
+
+    monkeypatch.setattr("ml.registry.sa.create_engine", fail_to_connect)
+
+    result = main(["promote", "--version", "rf-v1", "--database-url", "postgresql://test"])
+
+    captured = capsys.readouterr()
+    assert result == 1
+    assert captured.out.strip() == "registry_error=database unavailable"
+    assert captured.err == ""

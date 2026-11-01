@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import runpy
+import shutil
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import joblib
 import pandas as pd
 
+from ml import artifacts
 from ml.artifacts import load_artifact_metadata, save_model_artifact, sha256_file
 from ml.evaluation import EvaluationResult
 from ml.features import (
@@ -20,6 +23,18 @@ from ml.features import (
 )
 from ml.pipeline import TrainingConfig, TrainingResult, build_random_forest_pipeline
 from ml.splitting import TemporalSplit
+
+
+def test_artifact_module_supports_flat_container_layout(tmp_path) -> None:
+    runtime_root = tmp_path / "app"
+    module_path = runtime_root / "ml" / "artifacts.py"
+    module_path.parent.mkdir(parents=True)
+    shutil.copyfile(artifacts.__file__, module_path)
+
+    loaded = runpy.run_path(str(module_path))
+
+    assert loaded["REPO_ROOT"] == runtime_root
+    assert loaded["DEFAULT_MODEL_ROOT"] == runtime_root / "artifacts" / "models"
 
 
 class _FittedSearch:

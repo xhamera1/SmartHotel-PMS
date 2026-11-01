@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
 
 from ml.artifacts import load_artifact_metadata
 
@@ -104,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             promote_model(database_url, args.version)
             print(f"active_model={args.version}")
-    except (OSError, ValueError, sa.SQLAlchemyError) as exc:
+    except (OSError, ValueError, SQLAlchemyError) as exc:
         print(f"registry_error={exc}")
         return 1
     return 0

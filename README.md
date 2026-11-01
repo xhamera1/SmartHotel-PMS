@@ -1,5 +1,7 @@
 # SmartHotel-PMS
 
+**Live demo:** https://smarthotel-pchamera.swedencentral.cloudapp.azure.com/
+
 **Hotel Management System with an Intelligent Dynamic Pricing Engine**
 Bachelor's thesis project - Patryk Chamera
 
