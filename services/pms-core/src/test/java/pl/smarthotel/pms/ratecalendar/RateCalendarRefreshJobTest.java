@@ -116,6 +116,35 @@ class RateCalendarRefreshJobTest {
     }
 
     @Test
+    void refreshCountsAllDaysAcrossMonthsAndYears() {
+        Clock clock = Clock.fixed(Instant.parse("2026-11-06T23:30:00Z"), ZoneId.of("UTC"));
+        PricingProperties props =
+                new PricingProperties(true, "http://localhost:9", "k", 500, 1000, 1000, 180, 400, 2000);
+        service = new RateCalendarService(
+                rateCalendarRepository, roomTypeRepository, roomRepository, reservationRepository,
+                upsertService, props, clock, ZONE);
+        when(roomTypeRepository.findByActiveTrueOrderByCodeAsc()).thenReturn(List.of(roomType("STD")));
+        when(roomRepository.countSellableByRoomTypeId(1L)).thenReturn(10L);
+        when(reservationRepository.countOccupiedRoomsForTypeOn(eq(1L), any())).thenReturn(0L);
+        when(rateCalendarRepository.findManualDatesForRoomType(eq(1L), any(), any()))
+                .thenReturn(List.of());
+        when(upsertService.upsertChunk(anyList())).thenAnswer(inv -> ((List<?>) inv.getArgument(0)).size());
+
+        assertThat(service.refreshFromPricing()).isEqualTo(180);
+
+        ArgumentCaptor<List<PricingQuoteItemRequest>> captor = ArgumentCaptor.forClass(List.class);
+        verify(upsertService).upsertChunk(captor.capture());
+        var leadTimes = captor.getValue().stream().collect(Collectors.toMap(
+                PricingQuoteItemRequest::date, PricingQuoteItemRequest::leadTimeDays));
+        assertThat(leadTimes)
+                .containsEntry(LocalDate.of(2026, 11, 7), 0)
+                .containsEntry(LocalDate.of(2026, 11, 17), 10)
+                .containsEntry(LocalDate.of(2026, 12, 17), 40)
+                .containsEntry(LocalDate.of(2027, 2, 25), 110)
+                .containsEntry(LocalDate.of(2027, 4, 15), 159);
+    }
+
+    @Test
     void scheduledJobDelegatesToService() {
         RoomTypeEntity std = roomType("STD");
         when(roomTypeRepository.findByActiveTrueOrderByCodeAsc()).thenReturn(List.of(std));

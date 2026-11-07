@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -171,7 +172,7 @@ public class RateCalendarService {
                 long occupied = reservationRepository.countOccupiedRoomsForTypeOn(roomType.getId(), night);
                 int roomsRemaining = (int) Math.max(0, sellable - occupied);
                 double occupancyRate = OccupancyCalculator.rate(occupied, sellable);
-                int leadTimeDays = (int) Math.max(0, today.until(night).getDays());
+                int leadTimeDays = (int) Math.max(0, ChronoUnit.DAYS.between(today, night));
 
                 batch.add(new PricingQuoteItemRequest(
                         roomType.getCode(),

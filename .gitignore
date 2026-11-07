@@ -1,12 +1,9 @@
 # =============================================================================
 # SmartHotel-PMS — root .gitignore (monorepo: Java / Python / Node / infra)
-# NOTE: docs/ is intentionally tracked (thesis description, implementation plan,
-# ADRs, exported API contracts). Do not ignore it.
 # =============================================================================
 
-# --- Internal working documents (kept local, never published) ---------------
-docs/detailed_implementation_plan.md
-docs/detailed_implementation_plan.local.md
+# --- Docs (kept local, never published) -------------------------------------
+docs/
 
 # --- OS / editor junk -------------------------------------------------------
 .DS_Store

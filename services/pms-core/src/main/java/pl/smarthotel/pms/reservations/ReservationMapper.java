@@ -3,7 +3,6 @@ package pl.smarthotel.pms.reservations;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import pl.smarthotel.pms.common.mapping.MapStructConfig;
-import pl.smarthotel.pms.guests.GuestEntity;
 
 @Mapper(config = MapStructConfig.class)
 public interface ReservationMapper {

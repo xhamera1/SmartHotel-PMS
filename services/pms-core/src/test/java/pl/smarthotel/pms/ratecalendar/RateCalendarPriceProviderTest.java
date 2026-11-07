@@ -18,6 +18,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pl.smarthotel.pms.pricing.PricingClient;
@@ -160,6 +163,26 @@ class RateCalendarPriceProviderTest {
 
         assertThat(nights)
                 .containsExactly(new NightlyBar(night, new BigDecimal("480.00"), PriceSource.ML_MODEL));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"2026-10-03, 2", "2026-11-10, 40", "2027-01-19, 110", "2027-03-09, 159", "2026-09-30, 0"})
+    void shouldSendTotalLeadTimeForOnDemandQuotes(String stayDate, int expectedDays) {
+        LocalDate night = LocalDate.parse(stayDate);
+        when(rateCalendarRepository.findByRoomTypeIdAndDateBetween(4L, night, night.plusDays(1)))
+                .thenReturn(List.of());
+        when(roomTypeRepository.findById(4L)).thenReturn(Optional.of(roomType(4L, "DLX")));
+        when(roomRepository.countSellableByRoomTypeId(4L)).thenReturn(5L);
+        when(reservationRepository.countOccupiedRoomsForTypeOn(4L, night)).thenReturn(0L);
+        when(pricingClient.fetchQuotesOnDemand(any(PricingQuotesRequest.class)))
+                .thenReturn(Optional.empty());
+
+        providerEnabled.resolveBars(4L, new BigDecimal("350.00"), night, night.plusDays(1));
+
+        ArgumentCaptor<PricingQuotesRequest> captor = ArgumentCaptor.forClass(PricingQuotesRequest.class);
+        verify(pricingClient).fetchQuotesOnDemand(captor.capture());
+        assertThat(captor.getValue().items()).hasSize(1);
+        assertThat(captor.getValue().items().getFirst().leadTimeDays()).isEqualTo(expectedDays);
     }
 
     @Test
